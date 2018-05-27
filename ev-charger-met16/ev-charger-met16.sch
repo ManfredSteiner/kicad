@@ -38,10 +38,10 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 2
 Title "EV Charger Metal 16A"
-Date "2018-04-02"
-Rev "V1.0"
+Date "2018-05-27"
+Rev "V0.2"
 Comp "Manfred Steiner"
-Comment1 ""
+Comment1 "First Prototype"
 Comment2 ""
 Comment3 ""
 Comment4 ""
@@ -372,7 +372,7 @@ U 1 1 5AB4A9B7
 P 9050 2500
 F 0 "D1" H 9050 2400 50  0000 C CNN
 F 1 "D_Schottky" H 9000 2600 50  0001 C CNN
-F 2 "Diodes_SMD:D_SOD-323_HandSoldering" H 9050 2500 50  0001 C CNN
+F 2 "Diodes_SMD:D_SMA_Handsoldering" H 9050 2500 50  0001 C CNN
 F 3 "" H 9050 2500 50  0001 C CNN
 	1    9050 2500
 	-1   0    0    1   
@@ -1070,7 +1070,7 @@ U 1 1 5AC09A23
 P 1400 1900
 F 0 "D4" H 1400 1800 50  0000 C CNN
 F 1 "D_Schottky" H 1350 2000 50  0001 C CNN
-F 2 "Diodes_SMD:D_SOD-323_HandSoldering" H 1400 1900 50  0001 C CNN
+F 2 "Diodes_SMD:D_SMA_Handsoldering" H 1400 1900 50  0001 C CNN
 F 3 "" H 1400 1900 50  0001 C CNN
 	1    1400 1900
 	-1   0    0    1   
@@ -1203,7 +1203,7 @@ U 1 1 5AE44F46
 P 8550 850
 F 0 "D5" H 8550 750 50  0000 C CNN
 F 1 "D_Schottky" H 8500 950 50  0001 C CNN
-F 2 "Diodes_SMD:D_SOD-323_HandSoldering" H 8550 850 50  0001 C CNN
+F 2 "Diodes_SMD:D_SMA_Handsoldering" H 8550 850 50  0001 C CNN
 F 3 "" H 8550 850 50  0001 C CNN
 	1    8550 850 
 	-1   0    0    1   
