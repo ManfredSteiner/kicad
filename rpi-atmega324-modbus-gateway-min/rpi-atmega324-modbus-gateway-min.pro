@@ -1,4 +1,4 @@
-update=So 03 Jun 2018 11:19:37 CEST
+update=So 10 Jun 2018 14:19:24 CEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -61,6 +61,16 @@ LibName29=opto
 LibName30=atmel
 LibName31=contrib
 LibName32=valves
-LibName33=library/raspberry
-LibName34=library/terminals
-LibName35=library/sx-atmega
+LibName33=library/sx-atmega
+LibName34=library/sx-raspberry
+LibName35=library/sx-terminals
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=dist/
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=Pcbnew
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
