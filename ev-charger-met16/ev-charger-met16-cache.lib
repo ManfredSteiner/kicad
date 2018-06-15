@@ -572,7 +572,7 @@ ENDDEF
 DEF UART-Harwin4 J 0 40 Y Y 1 F N
 F0 "J" -550 450 50 H V L BNN
 F1 "UART-Harwin4" -550 -250 50 H V L BNN
-F2 "HLK_PM01" -350 -100 50 H I C CIN
+F2 "Harwin" -350 -100 50 H I C CIN
 F3 "" -450 -350 50 H I C CNN
 $FPLIST
  Harwin_LTek-Male_04x2.00mm_Straight_StrainRelief
