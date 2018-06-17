@@ -13,25 +13,25 @@ See: [device_assembled.png](device_assembled.png)
 
 ## Bugfixes / Improvements on pcb
 
-U5, U6, Pads: space between rows can be reduced (0,1..0,3mm)
-C8: Reference not good visible
-C5: swap location to R4
-Via: PE, N, L, drill size to diameter 1.5mm
-luster-drill: increase ring size, better placement of connection vias, move distance holes for cable
-R21: 27K
-R22: 10K
-R31: 15K
-R16,R18;R29,R23:R24: 47K
-R10: 100M
-R33: 120K
-R34: 33K
-R35: 3K3
-R32: 100M
-R27: 560R
-R28: 560R
-R3: PCB-Error, U5B-5 to +5V, T1-3 to U5B-5 without resistor
-RV1: 100K
-R13,R26: 1K
 
-
- 
+| Reference | Description |
+| --------- | ---------------------------------------------------- |
+| U5, U6    | Pads: space between rows can be reduced (0,1..0,3mm) |
+| C8        | Reference not good visible
+| C5        | swap location to R4
+| R21       | -> 27K
+| R22       | -> 10K
+| R31       | -> 15K
+| R16, R18, R29, R23, R24 | -> 47K
+| R10       | -> 100M (or remove resistor)
+| R33       | -> 120K
+| R34       | -> 33K
+| R35       | -> 3K3
+| R32       | -> 100M
+| R27       | -> 560R
+| R28       | -> 560R
+| RV1       | -> 100K
+| R13,R26   | -> 1K
+| R3            | PCB-Error, U5B-5 to +5V, T1-3 to U5B-5 without resistor
+| Via: PE, N, L | drill size to diameter 1.5mm ?
+| luster-drill  | increase ring size, better placement of connection vias, move distance holes for cable
