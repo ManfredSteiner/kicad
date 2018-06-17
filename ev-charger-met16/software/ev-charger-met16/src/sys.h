@@ -95,6 +95,8 @@ extern volatile struct Sys sys;
 void     sys_init                 (void);
 void     sys_main                 (void);
 
+void     sys_enablePWM            (uint8_t enable);
+
 void     sys_sei                  (void);
 void     sys_cli                  (void);
 
@@ -119,18 +121,6 @@ uint8_t  sys_uart_available       (void);
 int16_t  sys_uart_getBufferByte   (uint8_t pos);
 void     sys_uart_flush           (void);
 
-#ifdef SURE
-void    sys_setAllLeds            (uint8_t ledState);
-void    sys_setLed                (uint8_t index, uint8_t ledState);
-void    sys_toggleLed             (uint8_t index);
-#endif
-
-#ifdef GLOBAL_SURE_SEG7
-void    sys_7seg_setDigit         (uint8_t index, uint8_t digitValue);
-void    sys_7seg_setPoint         (uint8_t index, uint8_t pointState);
-void    sys_7seg_setString        (const char *str);
-#endif
-
 #ifdef GLOBAL_LCD
 void    sys_lcd_init              (void);
 void    sys_lcd_setRegister       (uint8_t cmd);
@@ -145,8 +135,8 @@ void    sys_lcd_putString         (const char * str);
 #endif
 
 #ifdef ARDUINO
-void    sys_setLed                (uint8_t ledState);
-void    sys_toggleLed             (void);
+//void    sys_setNanoLed                (uint8_t ledState);
+//void    sys_toggleNanoLed             (void);
 void    sys_setLedD2              (uint8_t ledState);
 void    sys_toggleLedD2           (void);
 void    sys_setLedD3              (uint8_t ledState);

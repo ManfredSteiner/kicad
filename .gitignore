@@ -30,3 +30,6 @@ _autosave-*
 **/software/**/.dep.inc
 **/software/**/build
 **/software/**/dist
+
+# calc
+**/.~lock*.ods#

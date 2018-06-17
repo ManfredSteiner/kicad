@@ -92,46 +92,36 @@ static FILE mystdin  = FDEV_SETUP_STREAM(NULL, sys_uart_getch, _FDEV_SETUP_READ)
 void sys_init (void)
 {
   memset((void *)&sys, 0, sizeof(sys));
- _delay_ms(150);
+ _delay_ms(10);
 
-  // OCR0A  = (F_CPU+4)/8/10000-1;
-  // TCCR0A = (1 << WGM01);
-  // TCCR0B = (1 << CS01);
-  // TIMSK0 = (1 << OCIE0A);
-  // TIFR0  = (1 << OCF0A);
-  
+  // Life LED PB5 (Arduino Nano)
+  // DDRB |= (1 << PB5); // not available, Port used for LCD
+ 
+  // Timer for state-machine
   OCR2A  = (F_CPU+4)/8/10000-1;
   TCCR2A = (1 << WGM01);
   TCCR2B = (1 << CS01);
   TIMSK2 = (1 << OCIE0A);
   TIFR2  = (1 << OCF0A);
   
-  TCCR0A = (1 << COM0A1) | (1 << COM0A0) | (1 << WGM01) | (1 << WGM00);
-  TCCR0B = (1 << CS01) | (1 << CS00);
-  OCR0A = 0xff;
+  // Timer for ADC
+  TCCR1A = 0;
+  TCCR1B = (1 << WGM12) | (1 << CS10); // CTC, f = 16MHz
+  OCR1A = 1600; // CTC -> 60us (960)
+  OCR1B = 1600; // ADC Trigger -> 60us (960)
+  TIMSK1 = (1 << OCIE1B);
   
+  // Timer for 1kHz control pilot signal
+  // TCCR0A = (1 << COM0A1) | (0 << COM0A0) | (1 << WGM01) | (1 << WGM00);
+  // TCCR0B = (1 << CS01) | (1 << CS00);
+  // OCR0A = 0xff;
+  
+  // Uart for FTDI connector J8
   UBRR0L = (F_CPU/GLOBAL_UART_BITRATE + 4)/8 - 1;
   UBRR0H = 0x00;
   UCSR0A = (1<<U2X0);
   UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
   UCSR0B = (1 << RXCIE0) | (1 << TXEN0) | (1 << RXEN0);
-
-#ifdef SURE
-  PORTA  =  0x0f;  // all LEDs off
-  DDRA   =  0x0f;  // LEDs (PA3:0)
-  DDRC  &= ~0xc0;  // Push Buttons SW1 (PC7) and SW2 (PC6)
-#elif ARDUINO
-  DDRB  = (1<< PB5); // LED L (yellow on pin PB5/SCK))
-  PORTB = 0x00;
-#elif CRUMB128
-  DDRB  = (1<< PB7); // LED1 (green on pin PB7))
-  PORTB = 0x00;  
-#elif ASURO
-  PORTB &= ~0x01; // green LED off
-  DDRB |= 0x01;   // green LED port (PB0) is output
-  PORTD &= ~0x04; // red LED off
-  DDRD |= 0x04;   // red LED port (PD2) is output
-#endif
 
 #ifdef GLOBAL_LCD  
   PORTB  &= ~0x3f;        // RS, RW, D7, D6, D5, D4
@@ -139,12 +129,6 @@ void sys_init (void)
   DDRB   |=  0x3f;        // RS, RW, D7, D6, D5, D4
   DDRD   |= (1 << PD7);   // E
   sys_lcd_init();
-#endif
-#ifdef  GLOBAL_SURE_SEG7
-  PORTA  =  0x0f;  // all LEDs off
-  DDRA   =  0xff;  // LEDs (PA3:0) and 7-Seg common cathode (PA7:0)
-  PORTB  =  0x00;  // all 7-Seg anodes off
-  DDRB   =  0xff;  // 7-Seg anodes
 #endif
 
   // connect libc functions printf(), gets()... to UART
@@ -156,8 +140,15 @@ void sys_init (void)
   DDRC |= (1 << PC3) | (1 << PC4); // LED D3 (PC3) and D2 (PC4)
   DDRC &= ~(1 << PC5); // SW2 (on/off)
   PORTC |= (1 << PC5);
-  DDRD &= ~(0x3c); // SW1 (rotary switch 0-9
+  DDRD &= ~(0x3c); // SW1 (rotary switch 0-9)
   PORTD |= 0x3c;
+  
+  // ADC: ADC0=Current 0A..16A, ADC1=230V Voltage, 
+  //      ADC2=-12V, ADC6=Voltage CP, ADC7=+12V
+  ADMUX = (1 << REFS1) | (1 << REFS0) | (1 << ADLAR); // Vref = internal 1.1V
+  ADCSRA = (1 << ADEN) | (1 << ADATE) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1);
+  ADCSRB = (1 << ADTS2) | (1 << ADTS0); // ADC Trigger: Timer 1 Compare Match B
+  
 }
 
 
@@ -166,6 +157,24 @@ void sys_main (void)
 #ifdef GLOBAL_MONITOR
   sys_mon_main();
 #endif
+}
+
+//----------------------------------------------------------------------------
+
+void sys_enablePWM (uint8_t enable) {
+    if (enable) {
+        if (TCCR0A == 0) {
+            OCR0A = 0xff;
+            TCCR0A = (1 << COM0A1) | (0 << COM0A0) | (1 << WGM01) | (1 << WGM00);
+            TCCR0B = (1 << CS01) | (1 << CS00);
+        }
+    } else {
+        TCCR0A = 0;
+        TCCR0B = 0;
+        OCR0A = 0;
+        DDRD |= (1 << PD6);
+        PORTD &= ~(1 << PD6);
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -727,36 +736,38 @@ void sys_toggleLed (uint8_t index)
 
 #ifdef ARDUINO
 
-void sys_setLed (uint8_t ledState) {
+/*
+void sys_setNanoLed (uint8_t ledState) {
     if (ledState)
         PORTB |= (1 << PB5);
     else
         PORTB &= ~(1 << PB5);
 }
 
-void sys_toggleLed (void) {
+void sys_toggleNanoLed (void) {
     PORTB ^= (1 << PB5);
 }
+*/
 
-void sys_setLedD2 (uint8_t ledState) {
+void sys_setLedD3 (uint8_t ledState) {
     if (ledState)
         PORTC |= (1 << PC3);
     else
         PORTC &= ~(1 << PC3);
 }
 
-void sys_toggleLedD2 (void) {
+void sys_toggleLedD3 (void) {
     PORTC ^= (1 << PC3);
 }
 
-void sys_setLedD3 (uint8_t ledState) {
+void sys_setLedD2 (uint8_t ledState) {
     if (ledState)
         PORTC |= (1<<PC4);
     else
         PORTC &= ~(1 << PC4);
 }
 
-void sys_toggleLedD3 (void) {
+void sys_toggleLedD2 (void) {
     PORTC ^= (1 << PC4);
 }
 
@@ -1246,7 +1257,7 @@ ISR (SYS_UART_RECEIVE_VECTOR)
 
 // Timer 2 Output/Compare Interrupt
 // called every 100us
-ISR (SYS_TIMER2_VECTOR)
+ISR (TIMER2_COMPA_vect)
 {
   static uint8_t cnt100us = 0;
   static uint8_t cnt500us = 0;
@@ -1288,4 +1299,17 @@ ISR (SYS_TIMER2_VECTOR)
     }
   }
 
+}
+
+
+ISR (ADC_vect) {
+   uint8_t channel = ADMUX & 0x0f;
+   channel = app_handleADCValue(channel, ADCH);
+   ADMUX = (1 << REFS1) | (1 << REFS0) | (1 << ADLAR) | (channel & 0x0f); // Vref = internal 1.1V
+}
+
+ISR (TIMER1_COMPA_vect) {
+}
+
+ISR (TIMER1_COMPB_vect) {
 }
