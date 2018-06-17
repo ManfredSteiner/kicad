@@ -1,4 +1,8 @@
-# Manufactering report
+# Manufacturing report
+
+Device is tested on electric vehicle (Hyundai Ioniqu). The remaining loading time, shown in the vehicles dashboard is calculated from the start loading current (depends on the control pilot pwm duty cycle). The control pilot duty cycle can be changed during loading phase. The vehicle is changing the loading current immediatly, but the remaining loading time in the dashboard stays unchanged. The loading principle may be used for dynamic load adjustment, for example to adjust loading current to photovoltaic power generation level.
+
+Also measurement for voltage and current is working as desired. 
 
 ## Phase switching relais needed
 
