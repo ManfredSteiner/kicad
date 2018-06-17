@@ -1,8 +1,10 @@
 # Manufacturing report
 
-Device is tested on electric vehicle (Hyundai Ioniqu). The remaining loading time, shown in the vehicles dashboard is calculated from the start loading current (depends on the control pilot pwm duty cycle). The control pilot duty cycle can be changed during loading phase. The vehicle is changing the loading current immediatly, but the remaining loading time in the dashboard stays unchanged. The loading principle may be used for dynamic load adjustment, for example to adjust loading current to photovoltaic power generation level.
+Device is tested on electric vehicle (Hyundai Ioniq). The remaining loading time, shown in the vehicles dashboard is calculated from the start loading current. The pwm duty cycle on control pilot can be selected by SW1 (7=7A, 8=8A, 9, 0, 1, 2, 3, 4, 5, 6=16A). SW2 must be in position ON. The maximum current selection (SW1) can be changed while vehicle is loading. The vehicle is changing the loading current immediatly if pwm duty cycle changes, only the remaining loading time in the dashboard stays unchanged which seems to be a bug in the vehicle software. The loading principle may be used for dynamic loading adjustment, for example to adapt loading current to photovoltaic power generation level.
 
-Also measurement for voltage and current is working as desired. 
+Also measurement for voltage and current and LCD is working as desired. 
+
+Using a [TTL-232R-5V-WE](http://www.ftdichip.com/Products/Cables/USBTTLSerial.htm) cable on J8 allows safe development without connection of 230V. You can supply the device by 230V and the J8 in parallel, in order to have monitor access via UART interface.
 
 ## Phase switching relais needed
 
