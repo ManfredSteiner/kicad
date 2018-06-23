@@ -21,4 +21,15 @@ _autosave-*
 *.csv
 
 # Exported Gerber files zips
-**/plots/*.zip
+**/plots
+/ev-charger-met16/software/ev-charger-met16/build/
+/ev-charger-met16/software/ev-charger-met16/dist/
+
+# software
+**/software/**/nbproject
+**/software/**/.dep.inc
+**/software/**/build
+**/software/**/dist
+
+# calc
+**/.~lock*.ods#
