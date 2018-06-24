@@ -32,6 +32,8 @@ struct Sys_SPI {
     uint16_t txData[8];
     uint8_t rxHigh;
     rxDataHandler_f rxDataHandler[8];
+    uint16_t txBuffer[8];
+    uint8_t txRPos, txUsed;
 };
 
 struct Sys {

@@ -812,27 +812,27 @@ int8_t sys_cmd_hexdump (uint8_t argc, char *argv[]) {
 #endif // GLOBAL_MONCMD_HEXDUMP
 
 
-uint8_t sys_spi_sendByte (uint8_t channel, uint8_t data, uint8_t waitUntilTransmitted) {
-    channel = channel & 0x07;
-    if (waitUntilTransmitted) {
-        while (sys.spi.txData[channel])
-            ; // wait until last byte transmitted
+uint8_t sys_spi_sendByte (uint8_t channel, uint8_t data, uint8_t wait) {
+    uint8_t used;
+    while (1) {
+        cli();
+        __asm__ __volatile__ ("nop");
+        used = sys.spi.txUsed;
+        if (used < 8 || !wait)
+            break;
+        sei();
+        __asm__ __volatile__ ("nop");
+    }
+    if (used < 8) {
+        uint8_t i = (sys.spi.txRPos + used) % 8;
+        sys.spi.txBuffer[i] = ((uint16_t)channel) << 13 | data;
+        sys.spi.txUsed++;
+        sei();
+        return 0; // OK
     } else {
-        if (sys.spi.txData[channel] != 0) {
-            sys.spi.err = sys_inc8BitCnt((sys.spi.err)); // error, spi busy
-            return 0;
-        }
+        sei();
+        return 1; // error, transmit buffer overflow
     }
-    uint8_t bLow = (channel << 5) | (data & 0x0f);
-    uint8_t bHigh = (channel << 5) | 0x10 | (data >> 4);
-    sys_cli();
-    sys.spi.txData[channel] = (bHigh << 8) | bLow;
-    sys_sei();
-    if (waitUntilTransmitted) {
-        while (sys.spi.txData[channel])
-            ; // wait until last byte transmitted
-    }
-    return 1;
 }
 
 
@@ -888,41 +888,42 @@ ISR (SYS_TIMER0_VECTOR) {
 
 
 ISR (SPI_STC_vect) {
-    PORTB |= (1 << PB1);
-    PORTB |= (1 << PB0);
+    static uint8_t sendLow = 0;
+    static uint8_t lowByte = 0;
     volatile uint8_t data = SPDR0;
-    // prepare response for next SPI transfer
-    uint8_t ch = sys.spi.nextChannel;
-    uint8_t nch = (ch + 1) & 0x07;
-    sys.spi.nextChannel = nch;
-    uint16_t txData;
     
-    do {
-        txData = sys.spi.txData[ch];
-        if (ch == 0) {
-            sys.spi.txData[ch] = (sys.spi.txData[ch] & 0x0001) ^ 0x0001;
+    uint8_t used = sys.spi.txUsed;
+    uint8_t dOut;
+    if (sendLow) { // 0,6us
+        PORTB |= (1 << PB1);
+        sendLow = 0;
+        dOut = lowByte;
+    } else { // 4us
+        PORTB |= (1 << PB0);
+        sendLow = 1;
+        uint8_t i = sys.spi.txRPos;
+        uint16_t w = sys.spi.txBuffer[i];
+        sys.spi.txBuffer[i] = 0;
+        sys.spi.txRPos = (i + 1) % 8;
+        uint8_t channel = (w >> 8) & 0xe0;
+        lowByte = channel | (w & 0x0f);
+        dOut = channel | 0x10 | ((w >> 4) & 0x0f);
+        if (used > 0) {
+            sys.spi.txUsed = used - 1;
         }
-        if (txData != 0) break;
-        ch = (ch + 1) & 0x07;
-    } while (ch != nch);
-    if (txData & 0x00ff) {
-        SPDR0 = txData & 0x00ff;
-        sys.spi.txData[ch] &= ~0x00ff;
-    } else {
-        SPDR0 = txData >> 8;
-        sys.spi.txData[ch] = 0;
     }
-    PORTB ^= (1 << PB0);
-    
+    SPDR0 = dOut;
+    PORTB &= ~(1 << PB1);
+    PORTB &= ~(1 << PB0);
+
     // handle received SPI byte
     if (data & 0x10) {
         if  ((sys.spi.rxHigh & 0x10)) {
-            // PORTB |= (1 << PB0); PORTB ^= (1 << PB0);
             sys.spi.err = sys_inc8BitCnt(sys.spi.err); // error, high byte after high byte
         }
         sys.spi.rxHigh = data; // memorize high byte (first part of transfer)
     } else {
-        ch = data >> 5;
+        uint8_t ch = data >> 5;
         uint8_t lastChannel = sys.spi.rxHigh >> 5;
         if (lastChannel > 0 && ch != (sys.spi.rxHigh >> 5)) {
             sys.spi.err = sys_inc8BitCnt(sys.spi.err); // error, channel differs for high/low byte
@@ -933,5 +934,4 @@ ISR (SPI_STC_vect) {
         }
         sys.spi.rxHigh = 0;
     }
-    PORTB ^= (1 << PB1);
 }
