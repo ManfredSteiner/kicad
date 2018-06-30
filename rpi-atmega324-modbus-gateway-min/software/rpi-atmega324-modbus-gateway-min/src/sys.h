@@ -25,6 +25,18 @@ struct Sys_MonCmdInfo {
     int8_t (*pFunction)(uint8_t, char *[]);
 };
 
+struct Sys_UART {
+    uint16_t errorCnt;  
+    uint16_t receivedByteCnt;
+    uint8_t  ucsra;
+};
+
+struct Sys_Modbus {
+    uint16_t dT1_35;
+    uint16_t dT1_15;
+};
+
+
 struct Sys_SPI {
     uint8_t flags; 
     uint8_t err;
@@ -40,6 +52,8 @@ struct Sys {
   uint8_t   flags;
   uint8_t   taskErr_u8;
   Sys_Event eventFlag;
+  struct Sys_UART uart[2];
+  struct Sys_Modbus modbus[2];
   struct Sys_SPI spi;
 };
 
@@ -53,6 +67,13 @@ extern volatile struct Sys sys;
 #define modbus2out (&sys_modbus2out)
 
 #define SYS_SPI_FLAG_MONTX    0x01
+
+#define SYS_MODBUS_STATUS_ERR7      7
+#define SYS_MODBUS_STATUS_ERR6      6
+#define SYS_MODBUS_STATUS_ERR5      5
+#define SYS_MODBUS_STATUS_ERR_FRAME 1
+#define SYS_MODBUS_STATUS_NEWFRAME  0
+
 
 #define SYS_FLAG_SREG_I       0x80
 #define SYS_FLAG_MON_UART0    0x40
@@ -98,5 +119,7 @@ void      sys_setLedD9 (uint8_t on);
 void      sys_toggleLedD7 ();
 void      sys_toggleLedD8 ();
 void      sys_toggleLedD9 ();
+
+uint8_t   sys_spi_sendByte (uint8_t channel, uint8_t data, uint8_t wait);
 
 #endif // SYS_H_INCLUDED

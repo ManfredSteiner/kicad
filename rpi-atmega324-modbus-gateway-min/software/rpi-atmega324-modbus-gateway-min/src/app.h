@@ -25,6 +25,9 @@ extern volatile struct App app;
 // functions
 
 void app_init (void);
+
+void app_handleUart1Byte (uint8_t data, uint8_t error);
+
 void app_main (void);
 
 void app_task_1ms   (void);
@@ -35,5 +38,7 @@ void app_task_16ms  (void);
 void app_task_32ms  (void);
 void app_task_64ms  (void);
 void app_task_128ms (void);
+
+
 
 #endif // APP_H_INCLUDED

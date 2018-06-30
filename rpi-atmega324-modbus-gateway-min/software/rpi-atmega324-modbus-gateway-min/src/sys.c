@@ -95,11 +95,12 @@ FILE sys_modbus2in  = FDEV_SETUP_STREAM(NULL, sys_monitor_getch, _FDEV_SETUP_REA
 
 void sys_init () {
     memset((void *)&sys, 0, sizeof(sys));
-    sys.flags |= SYS_FLAG_MON_UART0 | SYS_FLAG_MON_SPI_WAIT;
-    sys.spi.rxDataHandler[1] = sys_mon_handleReceivedByte;
+    sys.flags |= SYS_FLAG_MON_UART0;        // send monitor output to UART0
+    // sys.flags |= SYS_FLAG_MON_SPI_WAIT;  // send monitor output via SPI channel 7
+    sys.spi.rxDataHandler[7] = sys_mon_handleReceivedByte;
     _delay_ms(1);
 
-    DDRB |= 0x03; // Debug
+    DDRB |= 0x07; // Debug
     PORTB = 0;
     
     PORTD |= ((1 << PD7) | (1 << PD5));
@@ -107,11 +108,18 @@ void sys_init () {
     PORTD &= ~(1 << PD4);
     DDRD |= 0xf0; // PD7=nRE1, PD6=DE1, PD5=nRE2, PD4=DE2
  
+    // Timer 0 for task machine
     OCR0A  = (F_CPU+4)/8/10000-1;
     TCCR0A = (1 << WGM01);
-    TCCR0A = (1 << CS01);
+    TCCR0B = (1 << CS01);
     TIMSK0 = (1 << OCIE0A);
     TIFR0  = (1 << OCF0A);
+    
+    // Timer 1 for Modbus-RTU timing measurments
+    TCCR1A = 0;
+    TCCR1B = (1 << CS11); // f=12MHz
+    OCR1A  = 0xffff;
+    TIMSK1 = (1 << OCIE1A);
   
     // UART0
     UBRR0L = (F_CPU/GLOBAL_UART0_BITRATE + 4)/8 - 1;
@@ -123,9 +131,12 @@ void sys_init () {
     // UART1
     UBRR1L = (F_CPU/GLOBAL_UART1_BITRATE + 4)/8 - 1;
     UBRR1H = 0x00;
-    UCSR1A = (1<<U2X1);
+    UCSR1A = (1 << U2X1);
     UCSR1C = (1 << UCSZ11) | (1 << UCSZ10);
     UCSR1B = (1 << RXCIE1) | (1 << TXEN1) | (1 << RXEN1);
+    sys.modbus[0].dT1_35 = 70 * 12000000L / 16 / GLOBAL_UART1_BITRATE;
+    sys.modbus[0].dT1_15 = 30 * 12000000L / 16 / GLOBAL_UART1_BITRATE;
+    OCR1A = sys.modbus[0].dT1_35;
     
     // SPI Slave
     SPCR0 = (1 << SPIE0) | (1 << SPE0) | (1 << CPOL0);
@@ -157,16 +168,17 @@ uint16_t sys_inc16BitCnt (uint16_t count) {
 
 
 void sys_sei (void) {
-    if (sys.flags & SYS_FLAG_SREG_I)
+    if (sys.flags & SYS_FLAG_SREG_I) {
         sei();
+    }
 }
 
 
 void sys_cli (void) {
     if (SREG & 0x80) {
-        sys.flags |= 0x80;
+        sys.flags |= SYS_FLAG_SREG_I;
     } else {
-        sys.flags &= ~0x80;
+        sys.flags &= ~SYS_FLAG_SREG_I;
     }
     cli();
 }
@@ -298,11 +310,11 @@ int sys_monitor_putch (char c, FILE *f) {
     int rv = c;    
     
     if ( sys.flags & SYS_FLAG_MON_SPI_WAIT ) {
-        sys_spi_sendByte(1, c, 1);
+        sys_spi_sendByte(7, c, 1);
         // sys.spi.flags |= SYS_SPI_FLAG_MONTX;
     
     } else if ( sys.flags & SYS_FLAG_MON_SPI ) {
-        sys_spi_sendByte(1, c, 0);
+        sys_spi_sendByte(7, c, 0);
         // sys.spi.flags |= SYS_SPI_FLAG_MONTX;
     }
     
@@ -814,16 +826,17 @@ int8_t sys_cmd_hexdump (uint8_t argc, char *argv[]) {
 
 uint8_t sys_spi_sendByte (uint8_t channel, uint8_t data, uint8_t wait) {
     uint8_t used;
+    uint8_t timer = 255;
     while (1) {
         cli();
         __asm__ __volatile__ ("nop");
         used = sys.spi.txUsed;
-        if (used < 8 || !wait)
+        if (used < 8 || --timer == 0 || !wait)
             break;
         sei();
         __asm__ __volatile__ ("nop");
     }
-    if (used < 8) {
+    if (timer > 0 && used < 8) {
         uint8_t i = (sys.spi.txRPos + used) % 8;
         sys.spi.txBuffer[i] = ((uint16_t)channel) << 13 | data;
         sys.spi.txUsed++;
@@ -841,23 +854,45 @@ uint8_t sys_spi_sendByte (uint8_t channel, uint8_t data, uint8_t wait) {
 // ------------------------------------
 
 ISR (USART0_RX_vect) {
+    sys.uart[0].ucsra = UCSR0A;
+    uint8_t errors = sys.uart[0].ucsra & ( (1 << FE0) | (1 << DOR0) | (1 << UPE0) );
     volatile uint8_t data = UDR0;
+    if (errors) {
+         sys.uart[0].errorCnt = sys_inc16BitCnt(sys.uart[0].errorCnt);
+         return;
+    }
+    sys.uart[0].receivedByteCnt = sys_inc16BitCnt(sys.uart[0].receivedByteCnt);
+
     if (sys.flags & SYS_FLAG_MON_UART0) {
         sys_mon_handleReceivedByte(data);
     }
 }
 
 ISR (USART1_RX_vect) {
+    sys.uart[1].ucsra = UCSR1A;
+    uint16_t tcnt1 = TCNT1;
+    TCNT1 = 0; TCCR1B = (1 << CS11); // restart timer
+    uint8_t errors = UCSR1A & ( (1 << FE1) | (1 << DOR1) | (1 << UPE1) );
+    // uint8_t errors = sys.uart[1].ucsra & ( (1 << FE1) );
     volatile uint8_t data = UDR1;
-    if (sys.flags & SYS_FLAG_MON_UART1) {
+    if (errors) {
+        sys.uart[1].errorCnt = sys_inc16BitCnt(sys.uart[1].errorCnt);
+    } else {
+        sys.uart[1].receivedByteCnt = sys_inc16BitCnt(sys.uart[1].receivedByteCnt);
+    }
+    sei();
+    uint8_t status = ((errors != 0) << 3) | ((tcnt1 > sys.modbus[0].dT1_15) << 1) | (tcnt1 > sys.modbus[0].dT1_35);
+    app_handleUart1Byte(data, status);
+    if (!errors && sys.flags & SYS_FLAG_MON_UART1) {
         sys_mon_handleReceivedByte(data);
     }
+    
 }
 
 
 // Timer 0 Output/Compare Interrupt
 // called every 100us
-ISR (SYS_TIMER0_VECTOR) {
+ISR (TIMER0_COMPA_vect) {
     static uint8_t cnt100us = 0;
     static uint8_t cnt500us = 0;
     static uint8_t busy = 0;
@@ -884,7 +919,11 @@ ISR (SYS_TIMER0_VECTOR) {
     }
 }
 
-
+ISR (TIMER1_COMPA_vect) {
+    TCCR1B = 0; // disable timer 1
+    PORTB ^= (1 << PB1);
+    // PORTB &= ~(1 << PB1);
+}
 
 
 ISR (SPI_STC_vect) {
@@ -895,11 +934,9 @@ ISR (SPI_STC_vect) {
     uint8_t used = sys.spi.txUsed;
     uint8_t dOut;
     if (sendLow) { // 0,6us
-        PORTB |= (1 << PB1);
         sendLow = 0;
         dOut = lowByte;
     } else { // 4us
-        PORTB |= (1 << PB0);
         sendLow = 1;
         uint8_t i = sys.spi.txRPos;
         uint16_t w = sys.spi.txBuffer[i];
@@ -913,8 +950,6 @@ ISR (SPI_STC_vect) {
         }
     }
     SPDR0 = dOut;
-    PORTB &= ~(1 << PB1);
-    PORTB &= ~(1 << PB0);
 
     // handle received SPI byte
     if (data & 0x10) {
