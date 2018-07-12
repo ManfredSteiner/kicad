@@ -296,10 +296,15 @@ ISR (USART0_RX_vect) {
 
 
 ISR (USART1_RX_vect) {
+    uint8_t status = 0;
     uint16_t tcnt1 = TCNT1;
+    if (TCCR1B & (1 << CS11)) {
+       if (tcnt1 > sys.modbus[0].dT1_35) status |= (1 << SYS_MODBUS_STATUS_NEWFRAME); 
+    }
     TCNT1 = 0; TCCR1B = (1 << CS11); // restart timer
+
+    // UPE1 = 2  DOR1 = 3  FE1 = 4
     uint8_t errors = UCSR1A & ( (1 << FE1) | (1 << DOR1) | (1 << UPE1) );
-    // uint8_t errors = sys.uart[1].ucsra & ( (1 << FE1) );
     volatile uint8_t data = UDR1;
     if (errors) {
         sys.modbus[0].errorCnt = sys_inc16BitCnt(sys.modbus[0].errorCnt);
@@ -307,7 +312,9 @@ ISR (USART1_RX_vect) {
         sys.modbus[0].receivedByteCnt = sys_inc16BitCnt(sys.modbus[0].receivedByteCnt);
     }
     sei();
-    uint8_t status = ((errors != 0) << 3) | ((tcnt1 > sys.modbus[0].dT1_15) << 1) | (tcnt1 > sys.modbus[0].dT1_35);
+    
+    if (errors != 0) { status |= ((errors << 3) | (1 << SYS_MODBUS_STATUS_ERR_FRAME)); }
+    if (tcnt1 > sys.modbus[0].dT1_35) status |= (1 << SYS_MODBUS_STATUS_NEWFRAME);
     app_handleUart1Byte(data, status);
 }
 
@@ -342,6 +349,8 @@ ISR (TIMER0_COMPA_vect) {
 
 ISR (TIMER1_COMPA_vect) {
     TCCR1B = 0; // disable timer 1
+    TCNT1 = 0;
+    app_handleUart1Timeout();
 }
 
 ISR (SPI_STC_vect) {

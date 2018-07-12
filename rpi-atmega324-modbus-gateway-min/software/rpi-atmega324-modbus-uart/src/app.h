@@ -7,6 +7,8 @@ struct App
 {
   uint8_t flags_u8;
   uint8_t monitorModbus1;
+  uint8_t buffer[256];
+  uint8_t wIndex;
 };
 
 extern volatile struct App app;
@@ -30,6 +32,7 @@ void app_init (void);
 void app_main (void);
 
 void app_handleUart1Byte (uint8_t data, uint8_t status);
+void app_handleUart1Timeout ();
 
 void app_task_1ms   (void);
 void app_task_2ms   (void);

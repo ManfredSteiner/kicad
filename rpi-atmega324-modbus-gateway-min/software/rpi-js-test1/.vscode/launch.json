@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach",
+            "type": "node",
+            "request": "attach",
+            // "trace": true,
+            "port": 9229,
+            "address": "rpi",
+            "restart": false,
+            //"localRoot": "${workspaceRoot}/",
+            "localRoot": "/home/steiner/Private/work/kicad/rpi-atmega324-modbus-gateway-min/software/rpi-js-test1",
+            "remoteRoot": "/home/pi/rpi-js-test1",
+            "sourceMaps": true,
+            "program": "${workspaceRoot}/src/main.ts",
+            "smartStep": true
+        }
+    ]
+}
+

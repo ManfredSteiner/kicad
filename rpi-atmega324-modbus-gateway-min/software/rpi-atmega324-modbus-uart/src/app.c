@@ -101,27 +101,35 @@ void app_handleUart1Byte (uint8_t data, uint8_t status) {
     
 }
 
+void app_handleUart1Timeout () {
+    PORTB |= (1 << PB0);
+    PORTB &= ~(1 << PB0);
+    sys_setEvent(APP_EVENT_NEW_FRAME);
+    if (app.monitorModbus1) {
+        printf("\n\r");
+    }
+}
+
 //--------------------------------------------------------
 
 void app_task_1ms (void) {}
 void app_task_2ms (void) {}
 
 void app_task_4ms (void) {
-    static int8_t swRightOld = -1;
+    static uint8_t brOld = 0;
     uint8_t swRight = (PINC & 0x80) != 0;
-    if (swRight != swRightOld) {
-        uint16_t br;
-        if (swRight) {
-            br = 19200;
-        } else {
-            br = 9600;
-        }
-        UBRR1L = (F_CPU / br + 4)/8 - 1;
+    uint16_t br;
+    if (swRight) {
+        br = 19200;
+    } else {
+        br = 9600;
+    }
+    if (brOld != br) {
         sys.modbus[0].dT1_35 = 70 * F_CPU / 16 / br;
         sys.modbus[0].dT1_15 = 30 * F_CPU / 16 / br;
         OCR1A = sys.modbus[0].dT1_35;
-        swRightOld = swRight;
     }
+    UBRR1L = (F_CPU / br + 4)/8 - 1;
 }
 
 void app_task_8ms (void) {
