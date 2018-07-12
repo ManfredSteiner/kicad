@@ -1,9 +1,10 @@
 const remoteHostname = 'rpi';
-const remoteTargetDir = '/home/pi/prj/server';
+const remoteTargetDir = '/home/pi/prj';
 
 
 const gulp = require('gulp'),
       changed = require('gulp-changed'),
+      gulpDebug = require('gulp-debug'),
       del = require('del'),
       path = require('path'),
       ts = require('gulp-typescript'),
@@ -12,7 +13,8 @@ const gulp = require('gulp'),
       typescript = require('typescript'),
       sequence = require('run-sequence'),
       merge = require('merge-stream'),
-      rsync = require('gulp-rsync');
+      rsync = require('gulp-rsync'),
+      vfs = require('vinyl-fs');
 
 const tsProject = ts.createProject("tsconfig.json");
 
@@ -77,19 +79,30 @@ gulp.task('copyFiles', function (done) {
 });
 
 gulp.task('rsyncFiles', function (done) {
+    // const rsyncSrc =
+    //     gulp.src(['src/**', '!src/client'],)
+    //         .pipe(rsync({
+    //             root: 'src/',
+    //             hostname: remoteHostname,
+    //             destination: remoteTargetDir + '/server/src/'
+    //     }));
     const rsyncSrc =
-        gulp.src('src/**')
+        vfs.src('src/**')
+            // .pipe(gulpDebug())
             .pipe(rsync({
                 root: 'src/',
                 hostname: remoteHostname,
-                destination: remoteTargetDir + '/src/'
-        }));
+                destination: remoteTargetDir + '/server/src/',
+                emptyDirectories: true,
+                links: true
+            }));
+
     const rsyncDist =
         gulp.src('dist/**')
             .pipe(rsync({
                 root: 'dist/',
                 hostname: remoteHostname,
-                destination: remoteTargetDir + '/dist/'
+                destination: remoteTargetDir + '/server/dist/'
         }));
     // const rsyncGit =
     //     gulp.src('.git/**')
@@ -104,12 +117,21 @@ gulp.task('rsyncFiles', function (done) {
             .pipe(rsync({
                 root: '',
                 hostname: remoteHostname,
+                destination: remoteTargetDir + '/server'
+        }));
+
+    const rsyncClient =
+        gulp.src(['../ngx/dist/**', '../ngx/src/**'])
+            //.pipe(gulpDebug())
+            .pipe(rsync({
+                root: '../',
+                hostname: remoteHostname,
                 destination: remoteTargetDir
         }));
 
     // return merge(rsyncSrc, rsyncDist, rsyncGit, rsyncOthers);
-    // return merge(rsyncSrc, rsyncDist, rsyncOthers);
-    return merge(rsyncSrc, rsyncDist, rsyncOthers);
+    //return merge(rsyncSrc);
+    return merge(rsyncSrc, rsyncDist, rsyncOthers, rsyncClient);
 
 });
 

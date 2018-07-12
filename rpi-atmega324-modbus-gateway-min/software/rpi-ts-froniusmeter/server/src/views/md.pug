@@ -1,0 +1,11 @@
+doctype html
+html(lang="de")
+    head
+        title="Markdown Rendering"
+        meta(charset="UTF-8")
+        link(rel="stylesheet" href="/node_modules/github-markdown-css/github-markdown.css")
+        link(rel="stylesheet" href="/node_modules/highlight.js/styles/default.css")
+        
+    body
+        div.markdown-body
+            != renderedMarkdown
