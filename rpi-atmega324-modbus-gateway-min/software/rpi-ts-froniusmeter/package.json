@@ -1,45 +1,21 @@
 {
-    "name": "rpi-ts-froniusmeter",
-    "version": "0.3",
-    "description": "Nods.js/Typescript remote Raspberry project for Froniusmeter via Modbus-RTU",
-    "main": "main.js",
-    "scripts": {
-        "clean": "./node_modules/gulp/bin/gulp.js clean",
-        "build": "./node_modules/gulp/bin/gulp.js build",
-        "prestart": "./node_modules/gulp/bin/gulp.js cleanAndBuild",
-        "start": "node dist/main.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "keywords": [
-        "typescript",
-        "remote",
-        "modbus"
-    ],
-    "author": "Manfred Steiner",
-    "license": "MIT",
-    "private": true,
-    "repository": "https://github.com/ManfredSteiner/kicad",
-    "dependencies": {
-        "@types/nconf": "0.0.37",
-        "@types/node": "^10.5.1",
-        "@types/serialport": "^6.0.3",
-        "@types/sprintf-js": "^1.1.0",
-        "debug-sx": "^0.1.7",
-        "nconf": "^0.10.0",
-        "serialport": "^6.2.1",
-        "sprintf-js": "^1.1.1"
-    },
-    "devDependencies": {
-        "del": "^3.0.0",
-        "gulp": "^3.9.1",
-        "gulp-changed": "^3.2.0",
-        "gulp-rsync": "0.0.8",
-        "gulp-sourcemaps": "^2.6.4",
-        "gulp-typescript": "^5.0.0-alpha.2",
-        "gulp-using": "^0.1.1",
-        "merge-stream": "^1.0.1",
-        "run-sequence": "^2.2.1",
-        "tslint": "^5.10.0",
-        "typescript": "^2.9.2"
-    }
+  "name": "rpi-ts-froniusmeter",
+  "version": "0.0.1",
+  "description": "Server/Client (Node.js/Angular) for Raspberry PI",
+  "scripts": {
+    "clean": "cd server; rm -rf dist; cd ../ngx; rm -rf dist",
+    "build": "# use builds (server), buildc (client), buildt (ngx for test), buildr (ngx for release)",
+    "builds": "cd server; ./node_modules/gulp/bin/gulp.js build",
+    "buildc": "bin/createLinks",
+    "buildt": "cd ngx; ng build --prod --output-hashing none",
+    "buildr": "cd ngx; rm -rf dist/*; rm -rf release/*; ng build --prod; mv dist/* release; cd ..; bin/createLinks",
+    "prestart": "bin/createLinks; cd server; ./node_modules/gulp/bin/gulp.js build",
+    "start": "cd server; node dist/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Manfred Steiner",
+  "license": "MIT",
+  "private": true,
+  "repository": "https://github.com/ManfredSteiner/kicad"
 }

@@ -1,3 +1,7 @@
+const remoteHostname = 'rpi';
+const remoteTargetDir = '/home/pi/prj/server';
+
+
 const gulp = require('gulp'),
       changed = require('gulp-changed'),
       del = require('del'),
@@ -11,7 +15,7 @@ const gulp = require('gulp'),
       rsync = require('gulp-rsync');
 
 const tsProject = ts.createProject("tsconfig.json");
- 
+
 let hasError = false;
 let finalMessage = '';
 const sep = '----------------------------------------------------------------------------';
@@ -77,33 +81,36 @@ gulp.task('rsyncFiles', function (done) {
         gulp.src('src/**')
             .pipe(rsync({
                 root: 'src/',
-                hostname: 'rpi',
-                destination: '/home/pi/prj/src/'
+                hostname: remoteHostname,
+                destination: remoteTargetDir + '/src/'
         }));
     const rsyncDist =
         gulp.src('dist/**')
             .pipe(rsync({
                 root: 'dist/',
-                hostname: 'rpi',
-                destination: '/home/pi/prj/dist/'
+                hostname: remoteHostname,
+                destination: remoteTargetDir + '/dist/'
         }));
-    const rsyncGit =
-        gulp.src('.git/**')
-            .pipe(rsync({
-                root: '.git/',
-                hostname: 'rpi',
-                destination: '/home/pi/prj/.git/'
-        }));
+    // const rsyncGit =
+    //     gulp.src('.git/**')
+    //         .pipe(rsync({
+    //             root: '.git/',
+    //             hostname: remoteHostname,
+    //             destination: remoteTargetDir + '/.git/'
+    //     }));
 
     const rsyncOthers =
         gulp.src(['package.json', 'README.md'])
             .pipe(rsync({
                 root: '',
-                hostname: 'rpi',
-                destination: '/home/pi/prj/'
+                hostname: remoteHostname,
+                destination: remoteTargetDir
         }));
 
-    return merge(rsyncSrc, rsyncDist, rsyncGit, rsyncOthers);
+    // return merge(rsyncSrc, rsyncDist, rsyncGit, rsyncOthers);
+    // return merge(rsyncSrc, rsyncDist, rsyncOthers);
+    return merge(rsyncSrc, rsyncDist, rsyncOthers);
+
 });
 
 const cache = {};

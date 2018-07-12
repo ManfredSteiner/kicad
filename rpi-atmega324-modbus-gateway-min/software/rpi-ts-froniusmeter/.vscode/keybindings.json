@@ -13,7 +13,7 @@
     },{
         "key": "ctrl+alt+b",
         "command": "workbench.action.tasks.runTask",
-        "args": "build"
+        "args": "builds"
     },
     {
         "key": "ctrl+alt+c",

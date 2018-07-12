@@ -12,10 +12,10 @@
             "port": 9229,
             "address": "rpi",
             "restart": false,
-            "localRoot": "/home/user/prj",
-            "remoteRoot": "/home/pi/prj",
+            "localRoot": "${workspaceRoot}/server",
+            "remoteRoot": "/home/pi/prj/server",
             "sourceMaps": true,
-            "program": "${workspaceRoot}/src/main.ts",
+            "program": "${workspaceRoot}/server/src/main.ts",
             "smartStep": true
         }
     ]

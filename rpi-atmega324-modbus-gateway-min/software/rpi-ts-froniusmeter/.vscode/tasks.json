@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "build",
-            "command": "node_modules/gulp/bin/gulp.js",
+            "command": "server/node_modules/gulp/bin/gulp.js",
             "type": "shell",
             "group": "build",
             "presentation": {
@@ -12,7 +12,7 @@
             },
             "args": [
                 "--gulpfile",
-                "gulpfile.js",
+                "server/gulpfile.js",
                 "build"
             ],
             "problemMatcher": [{
@@ -33,7 +33,7 @@
         },
         {
             "label": "clean",
-            "command": "node_modules/gulp/bin/gulp.js",
+            "command": "server/node_modules/gulp/bin/gulp.js",
             "type": "shell",
             "group": "build",
             "presentation": {
@@ -42,13 +42,13 @@
             },
             "args": [
                 "--gulpfile",
-                "gulpfile.js",
+                "server/gulpfile.js",
                 "clean"
             ],
         },
         {
             "label": "cleanAndBuild",
-            "command": "node_modules/gulp/bin/gulp.js",
+            "command": "server/node_modules/gulp/bin/gulp.js",
             "type": "shell",
             "group": "build",
             "presentation": {
@@ -57,7 +57,7 @@
             },
             "args": [
                 "--gulpfile",
-                "gulpfile.js",
+                "server/gulpfile.js",
                 "cleanAndBuild"
             ],
             "problemMatcher": [
