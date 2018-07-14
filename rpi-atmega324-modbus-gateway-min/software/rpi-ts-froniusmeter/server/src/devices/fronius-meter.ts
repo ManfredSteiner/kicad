@@ -53,12 +53,12 @@ export class FroniusMeter implements IFroniusMeterValues {
     public static getInstance (modbusAddress?: number): FroniusMeter {
         if (modbusAddress === undefined) {
             const addresses = Object.keys(this._instances);
-            if (addresses.length === 0) { throw new Error('missing modbusAddress'); }
+            if (addresses.length === 0) { return null; }
             if (addresses.length > 1) { throw new Error('multiple devices available, need modbusAddress to select proper one'); }
             return this._instances[ +addresses[0] ];
         } else {
             const rv = this._instances[modbusAddress];
-            if (!(rv instanceof FroniusMeter)) { throw new Error('FroniusMeter with address ' + modbusAddress + ' not found'); }
+            if (!(rv instanceof FroniusMeter)) { return null; }
             return rv;
         }
     }

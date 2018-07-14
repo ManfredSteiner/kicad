@@ -14,7 +14,7 @@ import { handleError, RouterError, BadRequestError, AuthenticationError, NotFoun
 import { Auth } from './auth';
 import { IUser, User } from './database/user';
 
-// import { RouterData } from './routers/router-data';
+import { RouterData } from './routers/router-data';
 // import { RouterRes } from './routers/router-res';
 // import { RouterMd } from './routers/router-md';
 
@@ -67,7 +67,7 @@ export class Server {
 
         this._express.post('/auth', (req, res, next) => Auth.Instance.handlePostAuth(req, res, next));
 
-        // this._express.use('/md', RouterMd.Instance);
+        this._express.use('/data', RouterData.Instance);
         this._express.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
         this._express.use('/ngx', express.static(path.join(__dirname, '../../ngx/dist')));
         this._express.use('/assets', express.static(path.join(__dirname, '../../ngx/dist/assets')));
@@ -114,43 +114,26 @@ export class Server {
                        next: express.NextFunction) {
         debug.info(req.url);
 
-        if (req.url === '/' || req.url === '/index.html') {
+        if (req.url === '/' || req.url === '/index.html' || req.url.startsWith('/app') ) {
             const indexFileName = path.join(__dirname, '../../ngx/dist/ngx/index.html');
             res.sendFile(indexFileName);
             return;
         }
-        // if (req.url === '/' || req.url === '/index.html') {
-        //     const ngAppFiles = [
-        //         'styles.bundle.css', 'inline.bundle.js', 'polyfills.bundle.js', 'main.bundle.js', 'inline.bundle.js',
-        //         'polyfills.bundle.js', 'main.bundle.js'
-        //     ];
-        //     for (const f of ngAppFiles) {
-        //         const fn = path.join(__dirname, '..', '..', 'ngx', 'dist', f);
-        //         try {
-        //             fs.accessSync(fn, fs.constants.R_OK);
-        //         } catch (err) {
-        //             debug.warn('Angular app file ' + f + ' not found, cannot start application on client ' + req.socket.remoteAddress);
-        //             res.render('ngerror.pug');
-        //             return;
-        //         }
-        //     }
-        //     res.render('ngmain.pug');
-        //     return;
-        // }
         if (req.url === '/favicon.ico') {
             const fileName = path.join(__dirname, '..', 'dist/public/favicon.ico');
             debug.info(fileName);
             res.sendFile(fileName);
             return;
         }
-        if (req.url.startsWith('/ngx/')) {if (req.url === '/ngx/vendor.bundle.js') {
-                debug.fine('/ngx/vendor.bundle.js not avilable, send empty response');
-                res.end();
-                return;
-            }
-            handleError(new NotFoundError(req.url + 'not found'), req, res, next, debug);
-            return;
-        }
+        // if (req.url.startsWith('/ngx/')) {
+        //     if (req.url === '/ngx/vendor.bundle.js') {
+        //         debug.fine('/ngx/vendor.bundle.js not avilable, send empty response');
+        //         res.end();
+        //         return;
+        //     }
+        //     handleError(new NotFoundError(req.url + 'not found'), req, res, next, debug);
+        //     return;
+        // }
 
         const fn = path.join(__dirname, '../../ngx/dist/ngx/', req.url);
         try {
@@ -180,7 +163,7 @@ export class Server {
 }
 
 export interface IRequestUser {
-    htlid: string;
+    id: string;
     iat: number;
     exp: number;
     model: User;

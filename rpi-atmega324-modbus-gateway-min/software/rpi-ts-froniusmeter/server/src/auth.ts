@@ -50,11 +50,11 @@ export class Auth {
 
     public async handleGetAuth (req: IRequestWithUser, res: express.Response, next: express.NextFunction) {
         try {
-            const userAuth: IUserAuth = { htlid: req.user.htlid };
-            userAuth.accessToken = this.createAccessToken({htlid: req.user.htlid, type: 'access'});
-            const u = await Database.Instance.getUser(req.user.htlid);
-            if (!u || u.userid !== req.user.htlid) {
-                throw new AuthenticationError('cannot refresh user ' + req.user.htlid + ' from database');
+            const userAuth: IUserAuth = { htlid: req.user.id };
+            userAuth.accessToken = this.createAccessToken({htlid: req.user.id, type: 'access'});
+            const u = await Database.Instance.getUser(req.user.id);
+            if (!u || u.userid !== req.user.id) {
+                throw new AuthenticationError('cannot refresh user ' + req.user.id + ' from database');
             }
             this._mapUser[u.userid] = u;
             userAuth.user = u.toIAuthUser();
@@ -133,11 +133,11 @@ export class Auth {
             if (tContent.exp * 1000 <= Date.now()) {
                 throw new AuthenticationError('token expired');
             }
-            const user = this._mapUser[ tContent.htlid ];
+            const user = this._mapUser[ tContent.id ];
             if (!user) { throw new AuthenticationError('token not accepted'); }
 
             (<IRequestWithUser>req).user = {
-                htlid: tContent.htlid,
+                id: tContent.id,
                 iat: tContent.iat,
                 exp: tContent.exp,
                 model: user
@@ -237,7 +237,7 @@ export class Auth {
 }
 
 interface ITokenContent {
-    htlid: string;
+    id: string;
     type: string;
     iat: number;
     exp: number;

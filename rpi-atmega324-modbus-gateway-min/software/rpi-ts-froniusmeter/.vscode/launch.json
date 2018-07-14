@@ -15,8 +15,9 @@
             "localRoot": "${workspaceRoot}/server",
             "remoteRoot": "/home/pi/prj/server",
             "sourceMaps": true,
-            "program": "${workspaceRoot}/server/src/main.ts",
-            "smartStep": true
+            // "program": "${workspaceRoot}/server/src/main.ts",
+            "smartStep": true,
+            "stopOnEntry": false
         }
     ]
 }
