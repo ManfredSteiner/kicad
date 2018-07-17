@@ -1,5 +1,5 @@
 
-export const VERSION = '0.4.0';
+export const VERSION = '0.5.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -69,10 +69,15 @@ import * as SerialPort from 'serialport';
 import { sprintf } from 'sprintf-js';
 // import { ModbusCrc } from './modbus/modbus-crc';
 import { Server } from './server';
-import { Modbus } from './modbus/modbus';
+import { ModbusDevice } from './devices/modbus-device';
+import { ModbusRtu } from './modbus/modbus-rtu';
+import { ModbusTcp } from './modbus/modbus-tcp';
 import { FroniusMeter, IFroniusMeterValues } from './devices/fronius-meter';
+import { FroniusDevice14, IFroniusDevice14Values } from './devices/fronius-device14';
+import { FroniusSymo } from './devices/fronius-symo';
 
-let modbus: Modbus;
+let modbusRtu: ModbusRtu;
+let modbusTcp: ModbusTcp;
 
 doStartup();
 
@@ -83,9 +88,14 @@ async function doStartup () {
             const gitInfo = await git.getGitInfo();
             startupPrintVersion(gitInfo);
         }
-        FroniusMeter.addInstance(1);
-        FroniusMeter.instance.on('update', appendToHistoryFile);
-        modbus = new Modbus(nconf.get('modbus'));
+        modbusRtu = new ModbusRtu(nconf.get('modbus'));
+        modbusTcp = new ModbusTcp(nconf.get('froniusSymo'));
+
+        const fm = new FroniusMeter(modbusRtu, 1);
+        fm.on('update', appendToHistoryFile);
+        ModbusDevice.addInstance(fm);
+        ModbusDevice.addInstance(new FroniusDevice14(modbusRtu, 0x14));
+
         await startupParallel();
         await startupServer();
         doSomeTests();
@@ -119,7 +129,8 @@ async function shutdown (src: string): Promise<void> {
         console.log('Some jobs hanging? End program with exit code 1!');
         process.exit(1);
     }, shutdownMillis > 0 ? shutdownMillis : 500);
-    await modbus.close();
+    await modbusRtu.close();
+    await modbusTcp.stop();
     // await new Promise<void>( (resolve, reject) => { setTimeout(() => { resolve(); }, 2000); } );
     clearTimeout(timer);
     process.exit(0);
@@ -135,10 +146,13 @@ function startupPrintVersion (info?: git.GitInfo) {
 }
 
 async function startupParallel (): Promise<any []> {
-    const rv: Promise<any> [] = [ modbus.open() ];
+    const rv: Promise<any> [] = [ modbusRtu.open(), modbusTcp.start() ];
     for (const p of rv) {
         await p;
     }
+    const froniusSymo = new FroniusSymo(modbusTcp, 1);
+    ModbusDevice.addInstance(froniusSymo);
+    await froniusSymo.init();
     debug.info('startupParallel finished');
     return rv;
 }

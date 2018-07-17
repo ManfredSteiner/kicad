@@ -6,7 +6,7 @@ import * as debugsx from 'debug-sx';
 const debug: debugsx.ISimpleLogger = debugsx.createSimpleLogger('modbus:ModbusFrame');
 
 
-export class ModbusFrame {
+export class ModbusRTUFrame {
 
     private _at: Date;
     private _frame?: string;

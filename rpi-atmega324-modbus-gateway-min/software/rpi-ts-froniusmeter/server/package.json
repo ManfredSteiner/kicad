@@ -37,6 +37,7 @@
         "mongodb": "^2.2.35",
         "morgan": "^1.9.0",
         "nconf": "^0.10.0",
+        "node-modbus": "^4.3.0",
         "password-hash": "^1.2.2",
         "pug": "^2.0.3",
         "serialport": "^6.2.1",

@@ -42,7 +42,6 @@ export class RouterData {
     }
 
     private async getFroniusMeterJson (req: express.Request, res: express.Response, next: express.NextFunction) {
-        console.log(req.query);
         try {
             const fd = FroniusMeter.getInstance(req.query.address ? req.query.address : 1);
             if (!fd) {
@@ -54,7 +53,6 @@ export class RouterData {
             handleError(err, req, res, next, debug);
         }
 
-        
     }
 
 }

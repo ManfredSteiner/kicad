@@ -1,10 +1,12 @@
 
-import { ModbusFrame } from '../modbus/modbus-frame';
+import { ModbusDevice } from './modbus-device';
+import { ModbusRtu } from '../modbus/modbus-rtu';
+import { ModbusRtuDevice } from '../devices/modbus-rtu-device';
+import { ModbusRTUFrame } from '../modbus/modbus-rtu-frame';
 import { sprintf } from 'sprintf-js';
 import { EventEmitter } from 'events';
 
 import * as debugsx from 'debug-sx';
-//const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('devices:FroniusMeter');
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:FroniusMeter');
 
 export interface IFroniusMeterValues {
@@ -44,61 +46,29 @@ export interface IFroniusMeterValues {
 }
 
 
-export class FroniusMeter implements IFroniusMeterValues {
+export class FroniusMeter extends ModbusRtuDevice implements IFroniusMeterValues {
 
-    public static get instance (): FroniusMeter {
-        return this.getInstance();
-    }
-
-    public static getInstance (modbusAddress?: number): FroniusMeter {
-        if (modbusAddress === undefined) {
-            const addresses = Object.keys(this._instances);
-            if (addresses.length === 0) { return null; }
-            if (addresses.length > 1) { throw new Error('multiple devices available, need modbusAddress to select proper one'); }
-            return this._instances[ +addresses[0] ];
-        } else {
-            const rv = this._instances[modbusAddress];
-            if (!(rv instanceof FroniusMeter)) { return null; }
-            return rv;
+    public static getInstance (id: string): FroniusMeter {
+        if (id.startsWith('/dev')) {
+            debug.info('...');
         }
-    }
-
-    public static addInstance (modbusAddress: number): FroniusMeter {
-        if (modbusAddress >= 0 && modbusAddress <= 127) {
-            let rv = this._instances[modbusAddress];
-            if (rv instanceof FroniusMeter) { throw new Error('FroniusMeter with address ' + modbusAddress + ' already defined'); }
-            rv = new FroniusMeter(modbusAddress);
-            this._instances[modbusAddress] = rv;
-            return rv;
-
-        } else {
-            throw new Error('invalid modbusAddress');
+        let rv = ModbusDevice.getInstance(id);
+        if (!rv) {
+            rv = ModbusDevice.instances.find( (d) => (d instanceof FroniusMeter) && (d.address === +id) );
         }
+        return rv instanceof FroniusMeter ? rv : null;
     }
 
+    // *******************************************************************
 
-    public static get instances (): FroniusMeter [] {
-        const rv: FroniusMeter [] = [];
-        for (const i in this._instances) {
-            if (!Object.hasOwnProperty(i)) { continue; }
-            rv.push(this._instances[i]);
-        }
-        return rv;
-    }
-
-    private static _instances: { [ addr: number ]: FroniusMeter } = {};
-
-    // *****************************************************************************
-
-    private _modbusAddress: number;
     private _regs: number [];
     private _lastUpdateAt: Date;
     private _lastDemandAt: Date;
     private _lastRegs43: number;
     private _eventEmitter: EventEmitter;
 
-    private constructor (modbusAddress: number) {
-        this._modbusAddress = modbusAddress;
+    public constructor (serial: ModbusRtu, address: number) {
+        super(serial, address);
         this._regs = Array(59).fill(-1);
         this._eventEmitter = new EventEmitter();
     }
@@ -114,11 +84,11 @@ export class FroniusMeter implements IFroniusMeterValues {
     }
 
 
-    public handleResponse (requ: ModbusFrame, resp: ModbusFrame) {
+    public handleResponse (requ: ModbusRTUFrame, resp: ModbusRTUFrame) {
         let err: Error;
-        if (!requ || !requ.ok || !requ.crcOk || requ.address !== this._modbusAddress) {
+        if (!requ || !requ.ok || !requ.crcOk || requ.address !== this.address) {
             err = new Error('invalid request, cannot handle response');
-        } else if (!resp || !resp.ok || !resp.crcOk || resp.address !== this._modbusAddress || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
+        } else if (!resp || !resp.ok || !resp.crcOk || resp.address !== this.address || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
             err = new Error('invalid response');
         }
         switch (resp.funcCode) {
