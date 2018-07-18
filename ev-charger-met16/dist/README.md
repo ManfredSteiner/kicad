@@ -13,9 +13,9 @@ A relais is needed to separate phase J6-3 from J5-3. This solution works witch F
 
 **Bugfix:**  
 Insert solid state relais between J6-3 and the EV cable phase wire.
-This relais is switched by Port PC4 (A4 = LED D2).
+This relais is switched by Port PC4 (A4 = LED D2). The SSR generates app. 15..20W heat. Therfor move the metal plate of the SSR towards the metal of the housing. 
 
-See: [device_assembled.png](device_assembled.png)
+See: [device_assembled.png](device_assembled.png) (SSR metal plate on wrong side!)
 
 ## Bugfixes / Improvements on pcb
 
