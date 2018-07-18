@@ -9,7 +9,7 @@ Using a [TTL-232R-5V-WE](http://www.ftdichip.com/Products/Cables/USBTTLSerial.ht
 ## Phase switching relais needed
 
 The electric vehicle will not start loading, if there is voltage on phase (J6-3).
-A relais is needed to separate phase J6-3 from J5-3.
+A relais is needed to separate phase J6-3 from J5-3. This solution works witch Fotek 40A SSR. For Fotek 100A SSR you need an additional switching transistor vom +12V supply.
 
 **Bugfix:**  
 Insert solid state relais between J6-3 and the EV cable phase wire.
