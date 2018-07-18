@@ -64,9 +64,9 @@ export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14
                     if (l !== requ.wordAt(4) * 2) {
                         err = new Error('invalid response, wrong number of registers');
                     } else {
-                        debug.fine('response for modbus device 0x14');
+                        debug.finer('response for modbus device 0x14');
                         this.setHoldRegisters(requ.wordAt(2), resp.buffer, 3, l);
-                        debug.fine('%O', this.toValuesObject());
+                        debug.finest('%O', this.toValuesObject());
 
                         if (this._lastRegs) {
                             let s = '', cnt = 0;
@@ -76,7 +76,7 @@ export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14
                                 }
                             }
                             if (cnt >= 0) {
-                                debug.info(sprintf('%d regs changed: %s r0=%-5d, r153=%-5d', cnt, s, this._regs[0], this._regs[153]));
+                                debug.fine(sprintf('%d regs changed: %s r0=%-5d, r153=%-5d', cnt, s, this._regs[0], this._regs[153]));
                             }
                         }
                         this._lastRegs = this._regs.slice();
@@ -99,7 +99,7 @@ export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14
     }
 
     public setHoldRegisters (startAddr: number, data: Buffer, offset = 0, length?: number, regStartAddress = 4096) {
-        debug.fine('setHoldRegisters(): register start Address=%d, buffer: %d bytes, using %d bytes beginning on index %d',
+        debug.finer('setHoldRegisters(): register start Address=%d, buffer: %d bytes, using %d bytes beginning on index %d',
                     regStartAddress, data.length, length, offset);
         const firstIndex = startAddr - FroniusDevice14.FIRST_HOLDREG_ADDRESS;
         const lastIndex = startAddr + length / 2 - FroniusDevice14.FIRST_HOLDREG_ADDRESS - 1;

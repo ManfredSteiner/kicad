@@ -7,8 +7,8 @@ const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:ModbusDevic
 
 export abstract class ModbusDevice  {
 
-    public static getInstance (id: string): ModbusDevice {
-        const rv = this._instances[id];
+    public static getInstance (id: string | number): ModbusDevice {
+        const rv = this._instances[id.toString()];
         if (rv instanceof ModbusDevice) {
             return rv;
         }

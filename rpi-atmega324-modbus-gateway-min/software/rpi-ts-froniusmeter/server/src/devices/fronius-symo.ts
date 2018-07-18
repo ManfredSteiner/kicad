@@ -6,10 +6,20 @@ import { IFroniusRegister, FroniusRegister, ICommon, Common, IInverter, Inverter
          IMeter, Meter } from '../client/fronius-symo-values';
 
 import * as debugsx from 'debug-sx';
+import { ModbusDevice } from './modbus-device';
 const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('devices:FroniusSymo');
 
 
 export class FroniusSymo extends ModbusTcpDevice {
+
+    public static getInstance (id: string | number): FroniusSymo {
+        id = id.toString();
+        let rv = ModbusDevice.getInstance(id);
+        if (!rv) {
+            rv = ModbusDevice.instances.find( (d) => (d instanceof FroniusSymo) && (d.address === +id) );
+        }
+        return rv instanceof FroniusSymo ? rv : null;
+    }
 
     private _froniusRegister: FroniusRegister;
     private _common: Common;
@@ -45,7 +55,7 @@ export class FroniusSymo extends ModbusTcpDevice {
         try {
             const mt212 = await this._gateway.readHoldRegisters(this.address, 212, 5);
             const mt500 = await this._gateway.readHoldRegisters(this.address, 500, 14);
-            this._froniusRegister = new FroniusRegister(FroniusRegisterFactory.parseModbusTransaction(mt212, mt500));
+            this._froniusRegister = FroniusRegisterFactory.parseModbusTransaction(mt212, mt500);
             if (debug.fine.enabled) {
                 debug.fine('readFroniusRegister(): %o\n%O', this._froniusRegister, this._froniusRegister.toHumanReadableObject());
             }
@@ -59,7 +69,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readCommon (): Promise<Common> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40001, 69);
-            this._common = new Common(CommonFactory.parseModbusTransaction(mt));
+            this._common = CommonFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readCommon(): %o\n%O', this._common, this._common.toHumanReadableObject());
             }
@@ -73,7 +83,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readInverter (): Promise<Inverter> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40070, 62);
-            this._inverter = new Inverter(InverterFactory.parseModbusTransaction(mt));
+            this._inverter = InverterFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readInverter(): %o\n%O', this._inverter, this._inverter.toHumanReadableObject());
             }
@@ -87,7 +97,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readNameplate (): Promise<Nameplate> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40132, 28);
-            this._namePlate = new Nameplate(NameplateFactory.parseModbusTransaction(mt));
+            this._namePlate = NameplateFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readNamePlate(): %o\n%O', this._namePlate, this._namePlate.toHumanReadableObject());
             }
@@ -101,7 +111,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readSetting (): Promise<Setting> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40160, 31);
-            this._setting = new Setting(SettingFactory.parseModbusTransaction(mt));
+            this._setting = SettingFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readSetting(): %o\n%O', this._setting, this._setting.toHumanReadableObject());
             }
@@ -115,7 +125,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readStatus (): Promise<Status> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40192, 45);
-            this._status = new Status(StatusFactory.parseModbusTransaction(mt));
+            this._status = StatusFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readStatus(): %o\n%O', this._status, this._status.toHumanReadableObject());
             }
@@ -129,7 +139,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readControl (): Promise<Control> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40237, 27);
-            this._control = new Control(ControlFactory.parseModbusTransaction(mt));
+            this._control = ControlFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readControl(): %o\n%O', this._control, this._control.toHumanReadableObject());
             }
@@ -143,7 +153,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readStorage (): Promise<Storage> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40314, 26);
-            this._storage = new Storage(StorageFactory.parseModbusTransaction(mt));
+            this._storage = StorageFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readStorage(): %o\n%O', this._storage, this._storage.toHumanReadableObject());
             }
@@ -158,7 +168,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readInverterExtension (): Promise<InverterExtension> {
         try {
             const mt = await this._gateway.readHoldRegisters(this.address, 40264, 50);
-            this._inverterExtension = new InverterExtension(InverterExtensionFactory.parseModbusTransaction(mt));
+            this._inverterExtension = InverterExtensionFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readInverterExtension(): %o\n%O', this._inverterExtension, this._inverterExtension.toHumanReadableObject());
             }
@@ -180,7 +190,7 @@ export class FroniusSymo extends ModbusTcpDevice {
             throw err;
         }
         try {
-            this._stringCombiner = new StringCombiner(StringCombinerFactory.parseModbusTransaction(mt));
+            this._stringCombiner = StringCombinerFactory.parseModbusTransaction(mt);
             if (debug.fine.enabled) {
                 debug.fine('readStringCombiner(): %o\n%O', this._stringCombiner, this._stringCombiner.toHumanReadableObject());
             }
@@ -197,7 +207,7 @@ export class FroniusSymo extends ModbusTcpDevice {
             const mt194 = await this._gateway.readHoldRegisters(240, 40194, 2);
             // debug.info('request 1:\nMBAP: %o\nPDU:  %o', mt070.request.mbapHeader, mt070.request.pdu);
             // debug.info('response 1:\nMBAP: %o\nPDU:  %o', mt070.response.mbapHeader, mt070.response.pdu);
-            this._meter = new Meter(MeterFactory.parseModbusTransaction(mt070, mt194));
+            this._meter = MeterFactory.parseModbusTransaction(mt070, mt194);
             if (debug.fine.enabled) {
                 debug.fine('readMeter(): %o\n%O', this._meter, this._meter.toHumanReadableObject());
             }
@@ -213,12 +223,12 @@ export class FroniusSymo extends ModbusTcpDevice {
 
 class FroniusRegisterFactory {
 
-    public static parseModbusTransaction (mt212: ModbusTransaction, mt500: ModbusTransaction): IFroniusRegister {
+    public static parseModbusTransaction (mt212: ModbusTransaction, mt500: ModbusTransaction): FroniusRegister {
         // values are 0 on reading hold registers, spec. says 0xffff
         // if (mt212.getRegisterAsUint16(212) !== 0xffff) { throw new Error('invalid fronius register response (212'); }
         // if (mt212.getRegisterAsUint16(213) !== 0xffff) { throw new Error('invalid fronius register response (213'); }
         // if (mt212.getRegisterAsUint16(213) !== 0xffff) { throw new Error('invalid fronius register response (215'); }
-        const rv: IFroniusRegister =  {
+        const data: IFroniusRegister =  {
             r214_F_Active_State_Code: mt212.getRegisterAsUint16(214),
             r216_F_ModelType:         mt212.getRegisterAsUint16(216),
             r500_F_Site_Power:        mt500.getRegisterAsUint32(500),
@@ -226,7 +236,8 @@ class FroniusRegisterFactory {
             r506_F_Site_Energy_Year:  mt500.getRegisterAsUint64(506),
             r510_F_Site_Energy_Total: mt500.getRegisterAsUint64(510)
         };
-        if (rv.r216_F_ModelType !== 1) { throw new Error('wrong model type (216), change inverter configuration'); }
+        if (data.r216_F_ModelType !== 1) { throw new Error('wrong model type (216), change inverter configuration'); }
+        const rv = new FroniusRegister(mt500.response.at, data);
         return rv;
     }
 
@@ -234,11 +245,11 @@ class FroniusRegisterFactory {
 
 class CommonFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): ICommon {
+    public static parseModbusTransaction (mt: ModbusTransaction): Common {
         if (mt.getRegisterAsUint32(40001) !== 0x53756e53) { throw new Error('invalid common response SID (40001)'); }
         if (mt.getRegisterAsUint16(40003) !== 1) { throw new Error('invalid common response ID (40003)'); }
         if (mt.getRegisterAsUint16(40004) !== 65) { throw new Error('invalid common response length (40004)'); }
-        const rv: ICommon =  {
+        const data: ICommon =  {
             r40005_Mn:  mt.getRegisterAsString(40005, 40020),
             r40021_Md:  mt.getRegisterAsString(40021, 40036),
             r40037_Opt: mt.getRegisterAsString(40037, 40044),
@@ -246,15 +257,16 @@ class CommonFactory {
             r40053_SN:  mt.getRegisterAsString(40053, 40068),
             r40069_DA:  mt.getRegisterAsUint16(40069)
         };
+        const rv = new Common(mt.response.at, data);
         return rv;
     }
 
 }
 
 class InverterFactory {
-    public static parseModbusTransaction (mt: ModbusTransaction): IInverter {
+    public static parseModbusTransaction (mt: ModbusTransaction): Inverter {
         if (mt.getRegisterAsUint16(40071) !== 60) { throw new Error('invalid inverter response length (40071)'); }
-        const rv: IInverter =  {
+        const data: IInverter =  {
             r40070_ID:        mt.getRegisterAsUint16(40070),
             r40072_A:         Math.round(mt.getRegisterAsFloat32(40072) * 100) / 100,
             r40074_AphA:      Math.round(mt.getRegisterAsFloat32(40074) * 100) / 100,
@@ -286,20 +298,21 @@ class InverterFactory {
             r40128_EvtVnd3:   mt.getRegisterAsUint32(40128),
             r40130_EvtVnd4:   mt.getRegisterAsUint32(40130)
         };
-        if (rv.r40070_ID < 111 && rv.r40070_ID > 113) {
+        if (data.r40070_ID < 111 && data.r40070_ID > 113) {
             throw new Error('invalid inverter response ID (40070s)');
         }
+        const rv = new Inverter(mt.response.at, data);
         return rv;
     }
 }
 
 class NameplateFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): INamePlate {
+    public static parseModbusTransaction (mt: ModbusTransaction): Nameplate {
         if (mt.getRegisterAsUint16(40132) !== 120) { throw new Error('invalid nameplate response, wrong ID (40132)'); }
         if (mt.getRegisterAsUint16(40133) !== 26) { throw new Error('invalid nameplate response, wrong length (40133)'); }
         if (mt.getRegisterAsUint16(40134) !== 4) { throw new Error('invalid nameplate response, wrong DERTyp (40134)'); }
-        const rv: INamePlate =  {
+        const data: INamePlate =  {
             r04_WRtg:            mt.getRegisterAsUint16(40131 +  4),
             r05_WRtg_SF:         mt.getRegisterAsUint16(40131 +  5),
             r06_VARtg:           mt.getRegisterAsUint16(40131 +  6),
@@ -320,16 +333,17 @@ class NameplateFactory {
             r27_MaxDisChaRte_SF: 0, // Fronius-Bug mt.getRegisterAsInt16( 40131 + 27) === -2
             r28_Pad:             mt.getRegisterAsUint16(40131 + 28)
         };
+        const rv = new Nameplate(mt.response.at, data);
         return rv;
     }
 }
 
 class SettingFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): ISetting {
+    public static parseModbusTransaction (mt: ModbusTransaction): Setting {
         if (mt.getRegisterAsUint16(40160) !== 121) { throw new Error('invalid setting response, wrong ID (40160)'); }
         if (mt.getRegisterAsUint16(40161) !== 30) { throw new Error('invalid setting response, wrong length (40161)'); }
-        const rv: ISetting =  {
+        const data: ISetting =  {
             r03_WMax:       mt.getRegisterAsUint16(40159 + 3),
             r04_VRef:       mt.getRegisterAsUint16(40159 + 4),
             r05_VRefOfs:    mt.getRegisterAsInt16(40159 + 5),
@@ -345,16 +359,17 @@ class SettingFactory {
             r28_VARMax_SF:  mt.getRegisterAsInt16(40159 + 28),
             r30_PFMIN_SF:   mt.getRegisterAsInt16(40159 + 30)
         };
+        const rv = new Setting(mt.response.at, data);
         return rv;
     }
 }
 
 class StatusFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): IStatus {
+    public static parseModbusTransaction (mt: ModbusTransaction): Status {
         if (mt.getRegisterAsUint16(40192) !== 122) { throw new Error('invalid status response, wrong ID (40190)'); }
         if (mt.getRegisterAsUint16(40193) !== 44) { throw new Error('invalid status response, wrong length (40191)'); }
-        const rv: IStatus =  {
+        const data: IStatus =  {
             r03_PVConn:     mt.getRegisterAsUint16(40191 + 3),
             r04_StorConn:   mt.getRegisterAsUint16(40191 + 4),
             r05_ECPConn:    mt.getRegisterAsUint16(40191 + 5),
@@ -363,6 +378,7 @@ class StatusFactory {
             r38_TmSrc:      mt.getRegisterAsString(40191 + 38, 40191 + 41),
             r42_Tms:        mt.getRegisterAsUint32(40191 + 42)
         };
+        const rv = new Status(mt.response.at, data);
         return rv;
     }
 
@@ -370,10 +386,10 @@ class StatusFactory {
 
 class ControlFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): IControl {
+    public static parseModbusTransaction (mt: ModbusTransaction): Control {
         if (mt.getRegisterAsUint16(40238) !== 123) { throw new Error('invalid status response, wrong ID (40238)'); }
         if (mt.getRegisterAsUint16(40239) !== 24) { throw new Error('invalid status response, wrong length (40239)'); }
-        const rv: IControl =  {
+        const data: IControl =  {
             r03_Conn_WinTms:       mt.getRegisterAsUint16(40237 +  3),
             r04_Conn_RvrTms:       mt.getRegisterAsUint16(40237 +  4),
             r05_Conn:              mt.getRegisterAsUint16(40237 +  5),
@@ -394,6 +410,7 @@ class ControlFactory {
             r25_OutPFSet_SF:       mt.getRegisterAsInt16( 40237 + 25),
             r26_VArPct_SF:         mt.getRegisterAsInt16( 40237 + 26)
         };
+        const rv = new Control(mt.response.at, data);
         return rv;
     }
 }
@@ -403,10 +420,10 @@ class ControlFactory {
 
 class StorageFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): IStorage {
+    public static parseModbusTransaction (mt: ModbusTransaction): Storage {
         if (mt.getRegisterAsUint16(40314) !== 124) { throw new Error('invalid common block response, wrong ID (40314'); }
         if (mt.getRegisterAsUint16(40315) !== 24) { throw new Error('invalid common block response, wrong length (40315'); }
-        const rv: IStorage =  {
+        const data: IStorage =  {
             r03_WChaMax:          mt.getRegisterAsUint16(40313 +  3),
             r04_WchaGra:          mt.getRegisterAsUint16(40313 +  4),
             r05_WdisChaGra:       mt.getRegisterAsUint16(40313 +  5),
@@ -424,16 +441,17 @@ class StorageFactory {
             r24_StorAval_SF:      mt.getRegisterAsInt16( 40313 + 24),
             r26_InOutWRte_SF:     mt.getRegisterAsInt16( 40313 + 26)
         };
+        const rv = new Storage(mt.response.at, data);
         return rv;
     }
 }
 
 class InverterExtensionFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): IInverterExtension {
+    public static parseModbusTransaction (mt: ModbusTransaction): InverterExtension {
         if (mt.getRegisterAsUint16(40264) !== 160) { throw new Error('invalid inverter response, wrong ID (40264)'); }
         if (mt.getRegisterAsUint16(40265) !== 48) { throw new Error('invalid inverter response, wrong length (40265)'); }
-        const rv: IInverterExtension =  {
+        const data: IInverterExtension =  {
             r03_DCA_SF:  mt.getRegisterAsInt16( 40263 +  3),
             r04_DCV_SF:  mt.getRegisterAsInt16( 40263 +  4),
             r05_DCW_SF:  mt.getRegisterAsInt16( 40263 +  5),
@@ -459,27 +477,29 @@ class InverterExtensionFactory {
             r47_2_Tmp:   mt.getRegisterAsInt16( 40263 + 47),
             r48_2_DCst:  mt.getRegisterAsUint16(40263 + 48)
         };
+        const rv = new InverterExtension(mt.response.at, data);
         return rv;
     }
 }
 
 class StringCombinerFactory {
 
-    public static parseModbusTransaction (mt: ModbusTransaction): IStringCombiner {
+    public static parseModbusTransaction (mt: ModbusTransaction): StringCombiner {
         if (mt.getRegisterAsUint16(40070) !== 403) { throw new Error('invalid string combiner response, wrong ID (40070)'); }
         if (mt.getRegisterAsUint16(40071) !== 56) { throw new Error('invalid string combiner, wrong length (40071)'); }
-        const rv: IStringCombiner =  {
+        const data: IStringCombiner =  {
             r40072_DCA_SF:       mt.getRegisterAsUint16(40072)
         };
+        const rv = new StringCombiner(mt.response.at, data);
         return rv;
     }
 }
 
 class MeterFactory {
 
-    public static parseModbusTransaction (mt070: ModbusTransaction, mt194: ModbusTransaction): IMeter {
+    public static parseModbusTransaction (mt070: ModbusTransaction, mt194: ModbusTransaction): Meter {
         if (mt070.getRegisterAsUint16(40071) !== 124) { throw new Error('invalid meter response, wrong length (240:40071)'); }
-        const rv: IMeter =  {
+        const data: IMeter =  {
             r40070_ID:              mt070.getRegisterAsUint16( 40070),
             r40072_A:               Math.round(mt070.getRegisterAsFloat32(40072) * 1000) / 1000,
             r40074_AphA:            Math.round(mt070.getRegisterAsFloat32(40074) * 1000) / 1000,
@@ -544,6 +564,7 @@ class MeterFactory {
             r40192_TotVArhExpQ4phC: mt070.getRegisterAsFloat32(40192),
             r40194_Evt:             mt194.getRegisterAsUint16 (40194)
         };
+        const rv = new Meter(mt070.response.at, data);
         return rv;
     }
 }

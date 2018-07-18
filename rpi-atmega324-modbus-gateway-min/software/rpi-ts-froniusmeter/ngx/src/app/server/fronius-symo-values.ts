@@ -1,4 +1,19 @@
 
+export interface IFroniusSymoValues {
+    froniusRegister?:   { createdAt: Date, error?: string, regs?: IFroniusRegister };
+    common?:            { createdAt: Date, error?: string, regs?: ICommon };
+    inverter?:          { createdAt: Date, error?: string, regs?: IInverter };
+    nameplate?:         { createdAt: Date, error?: string, regs?: INamePlate };
+    setting?:           { createdAt: Date, error?: string, regs?: ISetting };
+    status?:            { createdAt: Date, error?: string, regs?: IStatus };
+    control?:           { createdAt: Date, error?: string, regs?: IControl };
+    storage?:           { createdAt: Date, error?: string, regs?: IStorage };
+    inverterExtension?: { createdAt: Date, error?: string, regs?: IInverterExtension };
+    stringCombiner?:    { createdAt: Date, error?: string, regs?: IStringCombiner };
+    meter?:             { createdAt: Date, error?: string, regs?: IMeter };
+}
+
+
 export interface IFroniusRegister {
     r214_F_Active_State_Code: number;
     r216_F_ModelType:         number;
@@ -255,19 +270,29 @@ class SymoModel<T> {
     }
 
     protected _regs: T;
-    private _at: Date;
+    private _createdAt: Date;
 
-    public constructor (regs: T) {
+    public constructor (createdAt: number | Date | string, regs: T) {
+        if (typeof(createdAt) === 'number') {
+            this._createdAt = new Date(createdAt);
+            // this._timeStamp.setTime(timeStamp);
+        } else if (typeof(createdAt) === 'string') {
+            this._createdAt = new Date(createdAt);
+        } else if (createdAt instanceof Date) {
+            this._createdAt = createdAt;
+        } else {
+            throw new Error('invalid createdAt');
+        }
+
         this._regs = regs;
-        this._at = new Date();
     }
 
     public get regs (): T {
         return this._regs;
     }
 
-    public get at (): Date {
-        return this._at;
+    public get createdAt (): Date {
+        return this._createdAt;
     }
 
     public toObject (): Object {
@@ -333,7 +358,7 @@ export class FroniusRegister extends SymoModel<IFroniusRegister> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:              this.at,
+            createdAt:       this.createdAt,
             sitePower:       this.normaliseUnit(this.sitePower, 2, 'W'),
             siteEnergyDay:   this.normaliseUnit(this.siteEnergyDay, 2, 'Wh'),
             siteEnergyYear:  this.normaliseUnit(this.siteEnergyYear, 2, 'Wh'),
@@ -354,13 +379,13 @@ export class Common extends SymoModel<ICommon> {
 
     public toHumanReadableObject (): Object {
         return {
-            at: this.at,
-            manufacturer: this.manufacturer,
-            deviceModel: this.deviceModel,
+            createdAt:          this.createdAt,
+            manufacturer:       this.manufacturer,
+            deviceModel:        this.deviceModel,
             dataManagerVersion: this.dataManagerVersion,
-            inverterVersion: this.inverterVersion,
-            serialNumber: this.serialNumber,
-            modbusAddress: this.modbusAddress
+            inverterVersion:    this.inverterVersion,
+            serialNumber:       this.serialNumber,
+            modbusAddress:      this.modbusAddress
         };
     }
 }
@@ -442,7 +467,7 @@ export class Inverter extends SymoModel<IInverter> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:                      this.at,
+            createdAt:               this.createdAt,
             isSinglePhaseInverter:   this._regs.r40070_ID === 111,
             isSplitPhaseInverter:    this._regs.r40070_ID === 112,
             isThreePhaseInverter:    this._regs.r40070_ID === 113,
@@ -484,17 +509,17 @@ export class Nameplate extends SymoModel<INamePlate> {
 
     public toHumanReadableObject (): Object {
         return {
-            at: this.at,
+            createdAt:                            this.createdAt,
             continousActivePowerOutputCapability: this.normaliseUnit(this.continousActivePowerOutputCapability, 2, 'W'),
-            continousApparentPowerCapability: this.normaliseUnit(this.continousApparentPowerCapability, 2, 'VA'),
-            continousReactivePowerQ1Capability: this.normaliseUnit(this.continousReactivePowerQ1Capability, 2, 'var'),
-            continousReactivePowerQ4Capability: this.normaliseUnit(this.continousReactivePowerQ4Capability, 2, 'var'),
-            maxRMSACCurrentCapability: this.normaliseUnit(this.maxRMSACCurrentCapability, 2, 'A'),
-            minPowerFactorQ1Capability: this.normaliseUnit(this.minPowerFactorQ1Capability, 2),
-            minPowerFactorQ4Capability: this.normaliseUnit(this.minPowerFactorQ4Capability, 2),
-            nominalStorageEnergy: this.normaliseUnit(this.nominalStorageEnergy, 2, 'Wh'),
-            maxStorageChargeRate: this.normaliseUnit(this.maxStorageChargeRate, 2, 'W'),
-            maxStorageDischargeRate: this.normaliseUnit(this.maxStorageDischargeRate, 2, 'W')
+            continousApparentPowerCapability:     this.normaliseUnit(this.continousApparentPowerCapability, 2, 'VA'),
+            continousReactivePowerQ1Capability:   this.normaliseUnit(this.continousReactivePowerQ1Capability, 2, 'var'),
+            continousReactivePowerQ4Capability:   this.normaliseUnit(this.continousReactivePowerQ4Capability, 2, 'var'),
+            maxRMSACCurrentCapability:            this.normaliseUnit(this.maxRMSACCurrentCapability, 2, 'A'),
+            minPowerFactorQ1Capability:           this.normaliseUnit(this.minPowerFactorQ1Capability, 2),
+            minPowerFactorQ4Capability:           this.normaliseUnit(this.minPowerFactorQ4Capability, 2),
+            nominalStorageEnergy:                 this.normaliseUnit(this.nominalStorageEnergy, 2, 'Wh'),
+            maxStorageChargeRate:                 this.normaliseUnit(this.maxStorageChargeRate, 2, 'W'),
+            maxStorageDischargeRate:              this.normaliseUnit(this.maxStorageDischargeRate, 2, 'W')
         };
     }
 }
@@ -511,7 +536,7 @@ export class Setting extends SymoModel<ISetting> {
 
     public toHumanReadableObject (): Object {
         return {
-            at: this.at,
+            createdAt:          this.createdAt,
             maxPowerOutput:     this.normaliseUnit(this.maxPowerOutput, 2, 'W'),
             voltageAtPCC:       this.normaliseUnit(this.voltageAtPCC, 2, 'V'),
             voltageOffsetAtPCC: this.normaliseUnit(this.voltageOffsetAtPCC, 2, 'V'),
@@ -550,7 +575,7 @@ export class Status extends SymoModel<IStatus> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:                        this.at,
+            createdAt:                 this.createdAt,
             isConnected:               this.isConnected,
             isResponsive:              this.isResponsive,
             isOperating:               this.isOperating,
@@ -562,7 +587,7 @@ export class Status extends SymoModel<IStatus> {
             isControllerModeFixedW:    this.isControllerModeFixedW,
             isControllerModeFixedVar:  this.isControllerModeFixedVar,
             isControllerModeFixedPF:   this.isControllerModeFixedPF,
-            lifetimeActiveACEnergyOut: this.normaliseUnit(this.lifetimeActiveACEnergyOut, 2, 'W'),
+            lifetimeActiveACEnergyOut: this.normaliseUnit(this.lifetimeActiveACEnergyOut, 2, 'Wh'),
             sourceOfTimeSync:          this.sourceOfTimeSync,
             time:                      this.time
         };
@@ -592,7 +617,7 @@ export class Control extends SymoModel<IControl> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:                          this.at,
+            createdAt:                   this.createdAt,
             connectTimeWindow:           this.connectTimeWindow + 's',
             connectTimeout:              this.connectTimeout + 's',
             isConnected:                 this.isConnected,
@@ -620,7 +645,7 @@ export class Storage extends SymoModel<IStorage> {
     public get maxDischargeGradient (): number { return this.scale(this._regs.r05_WdisChaGra, this._regs.r20_WchaDisChaGra_SF); }
     public get isActiveControlEnabled (): boolean { return this._regs.r06_StorCtl_Mod === 1; }
     public get minReserveInPercent (): number { return this.scale(this._regs.r08_MinRsvPct, this._regs.r22_MinRsvPct_SF); }
-    public get availEnergyInPercent (): number { return this.scale(this._regs.r09_ChaState, this._regs.r23_ChaState_SF); }
+    public get chargeLevelInPercent (): number { return this.scale(this._regs.r09_ChaState, this._regs.r23_ChaState_SF); }
     public get dischargeRateInPercent (): number { return this.scale(this._regs.r13_OutWRte, this._regs.r26_InOutWRte_SF); }
     public get chargeRateInPercent (): number { return this.scale(this._regs.r14_InWRte, this._regs.r26_InOutWRte_SF); }
     public get isChargingFromGridEnabled (): boolean { return this._regs.r18_ChaGriSet === 1; }
@@ -640,13 +665,13 @@ export class Storage extends SymoModel<IStorage> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:                        this.at,
+            createdAt:                 this.createdAt,
             maxChargeSetpoint:         this.normaliseUnit(this.maxChargeSetpoint, 2, 'W'),
             maxChargeGradient:         this.normaliseUnit(this.maxChargeGradient, 2) + '%',
             maxDischargeGradient:      this.normaliseUnit(this.maxDischargeGradient, 2) + '%',
             isActiveControlEnabled:    this.isActiveControlEnabled,
             minReserveInPercent:       this.normaliseUnit(this.minReserveInPercent, 2) + '%',
-            availEnergyInPercent:      this.normaliseUnit(this.availEnergyInPercent, 2) + '%',
+            chargeLevelInPercent:      this.normaliseUnit(this.chargeLevelInPercent, 2) + '%',
             chargeState:               this.chargeState,
             dischargeRateInPercent:    this.normaliseUnit(this.dischargeRateInPercent, 2) + '%',
             chargeRateInPercent:       this.normaliseUnit(this.chargeRateInPercent, 2) + '%',
@@ -667,7 +692,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     public get string1_Power (): number { return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF); }
     public get string1_LifetimeEnergy (): number { return this.scale(this._regs.r23_1_DCWH, this._regs.r06_DCWH_SF); }
     public get string1_Temperature (): number { return this._regs.r27_1_Tmp; }
-    public get string1_operatingState (): number { return this._regs.r28_1_DCst; }
+    public get string1_operatingState (): string { return this.stringOperatingState(this._regs.r28_1_DCst); }
     public get string2_Id (): number { return this._regs.r31_2_ID; }
     public get string2_Name (): string { return this._regs.r32_2_IDStr; }
     public get string2_Current (): number { return this.scale(this._regs.r40_2_DCA, this._regs.r03_DCA_SF); }
@@ -675,7 +700,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     public get string2_Power (): number { return this.scale(this._regs.r42_2_DCW, this._regs.r05_DCW_SF); }
     public get string2_LifetimeEnergy (): number { return this.scale(this._regs.r43_2_DCWH, this._regs.r06_DCWH_SF); }
     public get string2_Temperature (): number { return this._regs.r47_2_Tmp; }
-    public get string2_operatingState (): number { return this._regs.r48_2_DCst; }
+    public get string2_operatingState (): string { return this.stringOperatingState(this._regs.r48_2_DCst); }
 
     public get string1_Timestamp (): Date {
         const rv = new Date;
@@ -691,7 +716,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
 
     public toHumanReadableObject (): Object {
         return {
-            at:                     this.at,
+            createdAt:              this.createdAt,
             globalEvents:           this.globalEvents,
             numberOfModules:        this.numberOfModules,
             string1_Id:             this.string1_Id,
@@ -714,6 +739,20 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
             string2_operatingState: this.string2_operatingState
         };
     }
+
+    private stringOperatingState (reg: number): string {
+        switch (reg) {
+            case 1: return 'OFF';
+            case 2: return 'IN OPERATION';
+            case 3: return 'RUN UP PHASE';
+            case 4: return 'NORMAL OPERATION';
+            case 5: return 'POWER REDUCTION';
+            case 6: return 'SWITCH-OFF PHASE';
+            case 7: return 'ERROR EXISTS';
+            case 8: return 'STANDBY';
+            default: return '?';
+        }
+    }
 }
 
 // String Combiner Fronius-Bug
@@ -721,7 +760,7 @@ export class StringCombiner extends SymoModel<IStringCombiner> {
 
     public toHumanReadableObject (): Object {
         return {
-            at: this.at
+            typ: 'StringCombiner'
         };
     }
 }
@@ -731,9 +770,9 @@ export class StringCombiner extends SymoModel<IStringCombiner> {
 
 export class Meter extends SymoModel<IMeter> {
 
-    public get isSinglePhaseInverter (): boolean { return this._regs.r40070_ID === 201; }
-    public get isSplitPhaseInverter (): boolean { return this._regs.r40070_ID === 202; }
-    public get isThreePhaseInverter (): boolean { return this._regs.r40070_ID === 213; }
+    public get isSinglePhaseMeter (): boolean { return this._regs.r40070_ID === 201; }
+    public get isSplitPhaseMeter (): boolean { return this._regs.r40070_ID === 202; }
+    public get isThreePhaseMeter (): boolean { return this._regs.r40070_ID === 213; }
     public get current (): number { return this._regs.r40072_A; }
     public get currentL1 (): number { return this._regs.r40074_AphA; }
     public get currentL2 (): number { return this._regs.r40076_AphB; }
@@ -769,10 +808,10 @@ export class Meter extends SymoModel<IMeter> {
 
     public toHumanReadableObject (): Object {
         return {
-            at: this.at,
-            isSinglePhaseInverter: this.isSinglePhaseInverter,
-            isSplitPhaseInverter:  this.isSplitPhaseInverter,
-            isThreePhaseInverter:  this.isThreePhaseInverter,
+            createdAt:             this.createdAt,
+            isSinglePhaseMeter:    this.isSinglePhaseMeter,
+            isSplitPhaseMeter:     this.isSplitPhaseMeter,
+            isThreePhaseMeter:     this.isThreePhaseMeter,
             current:               this.normaliseUnit(this.current, 3, 'A'),
             currentL1:             this.normaliseUnit(this.currentL1, 3, 'A'),
             currentL2:             this.normaliseUnit(this.currentL2, 3, 'A'),

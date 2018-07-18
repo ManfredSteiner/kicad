@@ -48,10 +48,8 @@ export interface IFroniusMeterValues {
 
 export class FroniusMeter extends ModbusRtuDevice implements IFroniusMeterValues {
 
-    public static getInstance (id: string): FroniusMeter {
-        if (id.startsWith('/dev')) {
-            debug.info('...');
-        }
+    public static getInstance (id: string | number): FroniusMeter {
+        id = id.toString();
         let rv = ModbusDevice.getInstance(id);
         if (!rv) {
             rv = ModbusDevice.instances.find( (d) => (d instanceof FroniusMeter) && (d.address === +id) );

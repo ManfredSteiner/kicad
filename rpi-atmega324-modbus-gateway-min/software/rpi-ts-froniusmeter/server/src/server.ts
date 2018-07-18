@@ -135,9 +135,12 @@ export class Server {
         //     return;
         // }
 
-        const fn = path.join(__dirname, '../../ngx/dist/ngx/', req.url);
+        let fn = path.join(__dirname, '../../ngx/dist/ngx/', req.url);
         try {
-            debug.info(fn);
+            const index = fn.indexOf('?');
+            if (index > 0) {
+                fn = fn.substr(0, index);
+            }
             fs.accessSync(fn, fs.constants.R_OK);
             res.sendFile(fn);
             return;

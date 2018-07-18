@@ -278,7 +278,7 @@ export class ModbusRtu {
     }
 
     private handleMonitorIntervalEvent () {
-        debug.info('Modbus-Monitor: %o', this._status);
+        debug.fine('Modbus-Monitor: %o', this._status);
     }
 
 }

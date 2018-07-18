@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { Observable, Subscriber, TeardownLogic, of } from 'rxjs';
 
 import { IFroniusMeterValues } from '../server/fronius-meter-values';
+import * as froniusSymo from '../server/fronius-symo-values';
 
 
 @Injectable({ providedIn: 'root' })
@@ -24,6 +25,30 @@ export class DataService {
 
     public getFroniusMeterValues (): IFroniusMeterValues [] {
         return this._froniusMeterValues;
+    }
+
+    public getFroniusSymoValues ( query?: {
+                                    all?:               boolean,
+                                    froniusregister?:   boolean,
+                                    common?:            boolean,
+                                    inverter?:          boolean,
+                                    nameplate?:         boolean,
+                                    setting?:           boolean,
+                                    status?:            boolean,
+                                    control?:           boolean,
+                                    storage?:           boolean,
+                                    inverterExtension?: boolean,
+                                    stringCombiner?:    boolean,
+                                    meter?:             boolean
+                                }): Observable<froniusSymo.IFroniusSymoValues> {
+        let uri = this._serverUri + '/data/froniussymo';
+        let first = true;
+        for (const att in query) {
+            if (!query.hasOwnProperty(att)) { continue; }
+            uri += first ? '?' + att : '&' + att;
+            first = false;
+        }
+        return this.http.get<froniusSymo.IFroniusSymoValues>(uri);
     }
 
     private froniusMeterSubscriber (subscriber: Subscriber<IFroniusMeterValues>): TeardownLogic {
@@ -61,6 +86,8 @@ export class DataService {
             this._froniusMeterObservers.forEach( (o) => o.next(null));
         });
     }
+
+
 
 
 }

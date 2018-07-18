@@ -15,7 +15,7 @@
     "@angular/common": "^6.0.3",
     "@angular/compiler": "^6.0.3",
     "@angular/core": "^6.0.3",
-    "@angular/forms": "^6.0.3",
+    "@angular/forms": "^6.0.9",
     "@angular/http": "^6.0.3",
     "@angular/platform-browser": "^6.0.3",
     "@angular/platform-browser-dynamic": "^6.0.3",
@@ -25,6 +25,7 @@
     "core-js": "^2.5.4",
     "font-awesome": "^4.7.0",
     "ng4-charts": "^1.0.2",
+    "ngx-bootstrap": "^3.0.1",
     "rxjs": "^6.0.0",
     "zone.js": "^0.8.26"
   },

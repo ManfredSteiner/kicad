@@ -284,6 +284,10 @@ export class ModbusTcpFrame {
         this._at = new Date();
     }
 
+    public get at (): Date {
+        return this._at;
+    }
+
     public get isComplete (): boolean {
         return this._pdu !== undefined;
     }
