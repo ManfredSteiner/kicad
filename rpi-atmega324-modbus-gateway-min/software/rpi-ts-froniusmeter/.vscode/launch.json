@@ -9,6 +9,7 @@
             "type": "node",
             "request": "attach",
             // "trace": true,
+            "stopOnEntry": false,
             "port": 9229,
             "address": "rpi",
             "restart": false,
@@ -16,8 +17,8 @@
             "remoteRoot": "/home/pi/prj/server",
             "sourceMaps": true,
             // "program": "${workspaceRoot}/server/src/main.ts",
-            "smartStep": true,
-            "stopOnEntry": false
+            "smartStep": true
+            
         }
     ]
 }

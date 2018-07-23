@@ -209,7 +209,6 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
         if (a && a.filter) {
             a.filter.isDisabled = !a.filter.isDisabled;
         }
-        // this.applyTableFilter();
     }
 
     private filter (a: IAccordion, items: IInfo []): any [] {
@@ -229,6 +228,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoFroniusRegister (v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.froniusRegister) {
             if (v.froniusRegister.error) {
                 this._symo.froniusRegister = null;
@@ -242,6 +242,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoCommon (v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.common) {
             if (v.common.error) {
                 this._symo.common = null;
@@ -255,6 +256,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoInverter (v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.inverter) {
             if (v.inverter.error) {
                 this._symo.inverter = null;
@@ -267,6 +269,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoNameplate (v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.nameplate) {
             if (v.nameplate.error) {
                 this._symo.nameplate = null;
@@ -280,6 +283,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoSetting(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.setting) {
             if (v.setting.error) {
                 this._symo.setting = null;
@@ -292,6 +296,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoStatus(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.status) {
             if (v.status.error) {
                 this._symo.status = null;
@@ -304,6 +309,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoControl(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.control) {
             if (v.control.error) {
                 this._symo.control = null;
@@ -316,6 +322,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoStorage(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.storage) {
             if (v.storage.error) {
                 this._symo.storage = null;
@@ -335,6 +342,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoInverterExtension(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.inverterExtension) {
             if (v.inverterExtension.error) {
                 this._symo.inverterExtension = null;
@@ -348,6 +356,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoStringCombiner(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.stringCombiner) {
             if (v.stringCombiner.error) {
                 this._symo.stringCombiner = null;
@@ -360,6 +369,7 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
     }
 
     private handleSymoMeter(v: symo.IFroniusSymoValues) {
+        if (!this._symo) { return; }
         if (v.meter) {
             if (v.meter.error) {
                 this._symo.meter = null;

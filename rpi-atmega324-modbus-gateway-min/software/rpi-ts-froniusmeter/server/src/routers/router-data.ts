@@ -6,6 +6,8 @@ import * as express from 'express';
 import { handleError, RouterError, BadRequestError, AuthenticationError } from './router-error';
 import { FroniusMeter } from '../devices/fronius-meter';
 import { IFroniusSymoValues } from '../client/fronius-symo-values';
+import { IMonitorRecordRawData } from '../client/monitor-record';
+import { Monitor } from '../monitor';
 
 
 
@@ -32,6 +34,7 @@ export class RouterData {
         this._router = express.Router();
         this._router.get('/froniusmeter', (req, res, next) => this.getFroniusMeterJson(req, res, next));
         this._router.get('/froniussymo', (req, res, next) => this.getFroniusSymoJson(req, res, next));
+        this._router.get('/monitor', (req, res, next) => this.getMonitorJson(req, res, next));
         this._router.get('/*', (req, res, next) => this.getAll(req, res, next));
 
     }
@@ -171,6 +174,24 @@ export class RouterData {
                     const now = new Date();
                     debug.warn('%s: reading symo meter fails\n%e', now.toISOString(), err);
                     rv.meter = { createdAt: now, error: err.toString() };
+                }
+            }
+            debug.info('query %o -> response: %o', req.query, rv);
+            res.json(rv);
+        } catch (err) {
+            handleError(err, req, res, next, debug);
+        }
+    }
+
+
+    private async getMonitorJson (req: express.Request, res: express.Response, next: express.NextFunction) {
+        try {
+            const monitor = Monitor.Instance;
+            const rv: IMonitorRecordRawData [] = [];
+            if (req.query.latest !== undefined || Object.keys(req.query).length === 0) {
+                const d = monitor.latest;
+                if (d) {
+                    rv.push(d.rawData);
                 }
             }
             debug.info('query %o -> response: %o', req.query, rv);

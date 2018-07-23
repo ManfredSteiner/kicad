@@ -8,12 +8,10 @@ import * as SerialPort from 'serialport';
 import { sprintf } from 'sprintf-js';
 import { ModbusDevice } from '../devices/modbus-device';
 import { ModbusRTUFrame } from './modbus-rtu-frame';
-import { FroniusMeter } from '../devices/fronius-meter';
+// import { FroniusMeter } from '../devices/fronius-meter';
 
 import * as debugsx from 'debug-sx';
-const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('modbus:ModbusRTU');
-
-
+const debug: debugsx.IFullLogger = debugsx.createFullLogger('modbus:ModbusRTU');
 
 
 export class ModbusRtu {
@@ -21,21 +19,13 @@ export class ModbusRtu {
     private _config: IModbusRtuConfig;
     private _serialPort: SerialPort;
     private _openPromise: { resolve: () => void, reject: (err: Error) => void};
-    private _monitor: NodeJS.Timer;
-    private _status: { receivedByteCount: number, requestCount: number, responseCount: number, errorCnt: number, signalProblemCnt: number };
     private _frame = '';
     private _lastRequest: ModbusRTUFrame;
-    private _unexpectedFrameCnt = 0;
+    private _monitor: ModbusRtuMonitor;
 
     public constructor (config: IModbusRtuConfig) {
         this._config = config;
-        this._status = {
-            receivedByteCount: 0,
-            requestCount: 0,
-            responseCount: 0,
-            errorCnt: 0,
-            signalProblemCnt: 0
-        };
+        this._monitor = new ModbusRtuMonitor();
     }
 
     public get device (): string {
@@ -63,7 +53,6 @@ export class ModbusRtu {
                 } else {
                     debug.info('serial port ' + this._config.device + ' opened (' + this._config.baudrate + 'bps)');
                     this._openPromise.resolve();
-                    this._monitor = setInterval(() => this.handleMonitorIntervalEvent(), 5000);
                 }
                 this._openPromise = null;
             });
@@ -71,11 +60,12 @@ export class ModbusRtu {
         return rv;
     }
 
+    public get status (): ModbusRtuStatus {
+        return this._monitor;
+    }
+
     public async close () {
-        if (this._monitor) {
-            clearInterval(this._monitor);
-            this._monitor = null;
-        }
+        this._monitor.shutdown();
         if (!this._serialPort || !this._serialPort.isOpen) {
             return Promise.reject(new Error('serial port not open'));
         }
@@ -112,17 +102,15 @@ export class ModbusRtu {
         }
 
         try {
-            this._status.receivedByteCount += data.length;
-
+            this._monitor.incReceivedByteCnt(data.length);
                 //         // console.log('Buffer with ' + data.length + ' Bytes received');
             for (const b of data.values()) {
                 if (b === 10) {
-                    const modbusFrame = this.handleFroniusmeter(this._frame) || this.handle14Frame(this._frame);
-                    if (!modbusFrame) {
-                        if (this._unexpectedFrameCnt >= 0) {
-                            debug.warn('unexpected modbus frame %s', this._frame);
-                        }
-                        this._unexpectedFrameCnt++;
+                    try {
+                        this.handleFrame(this._frame);
+                    } catch (err) {
+                        this._monitor.incErrorOthersCnt();
+                        debug.warn('handleFrame() fails\n%e', err);
                     }
                     this._frame = '';
                 } else if (b !== 13) {
@@ -134,151 +122,326 @@ export class ModbusRtu {
         }
     }
 
-    private handleFroniusmeter (frame: string): ModbusRTUFrame {
-        if (!frame.startsWith('0103')) { return null; }
+    private frameAsDebugString (frame: string): string {
+        if (debug.fine.enabled) {
+            return '(' + frame.length + ' bytes)\n' + frame;
+        } else {
+            return '(' + frame.length + ' bytes): ' + frame.substr(0, 16) + '...';
+        }
+    }
 
-        let modbusFrame: ModbusRTUFrame;
-        switch (this._frame.length) {
-            case 16: case 18: {
-                if (this._frame.length === 16) {
-                    modbusFrame = new ModbusRTUFrame(this._frame);
-                } else {
-                    modbusFrame = new ModbusRTUFrame(this._frame, 16);
-                    debug.warn('Modbus request function code 03 for address 01, bus signal problem detected');
-                    this._status.signalProblemCnt++;
-                }
-                if (modbusFrame.ok) {
-                    debug.fine('Modbus request function code 03 for address 01');
-                    this._status.requestCount++;
-                    this._lastRequest = modbusFrame;
-                } else if (!modbusFrame.crcOk) {
-                    debug.warn('CRC Error: modbus request function code 03 for address 01');
-                    this._status.errorCnt++;
-                } else {
-                    debug.warn('Error: modbus request function code 03 for address 01\n%e', modbusFrame.error);
-                    this._status.errorCnt++;
-                }
-                break;
-            }
+    private handleFrame (frame: string) {
+        if (frame.length < 8) {
+            this._monitor.incErrorFrameCnt();
+            debug.warn('invalid modbus frame %s', this.frameAsDebugString(frame));
+            this._lastRequest = null;
+            return;
+        }
 
-            case 246: case 248: {
-                if (this._frame.length === 246) {
-                    modbusFrame = new ModbusRTUFrame(this._frame);
-
-                } else {
-                    modbusFrame = new ModbusRTUFrame(this._frame, 246);
-                    debug.warn('Modbus response function code 03 from address 01, bus signal problem detected');
-                    this._status.signalProblemCnt++;
-                }
-                if (modbusFrame.ok) {
-                    debug.fine('Modbus response function code 03 from address 01');
-                    this._status.responseCount++;
-                    if (this._lastRequest instanceof ModbusRTUFrame) {
-                        if (this._lastRequest.address === modbusFrame.address &&
-                            this._lastRequest.funcCode === modbusFrame.funcCode) {
-                            const fm = FroniusMeter.getInstance(this._config.device + ':' + modbusFrame.address);
-                            if (!fm) {
-                                debug.warn('Froniusmeter not found for %s', modbusFrame.frame);
-                            } else {
-                                fm.handleResponse(this._lastRequest, modbusFrame);
-                            }
-                        } else {
-                            debug.warn('unexpected modbus response');
-                        }
-                    }
-                } else if (!modbusFrame.crcOk) {
-                    debug.warn('CRC Error: modbus response function code 03 from address 01');
-                    this._status.errorCnt++;
-                } else {
-                    debug.warn('Error: modbus response function code 03 for address 01\n%e', modbusFrame.error);
-                    this._status.errorCnt++;
-                }
-                this._lastRequest = null;
-                break;
-            }
-
-
+        const addr = parseInt(frame.substr(0, 2), 16);
+        switch (addr) {
+            case 0x01: break; // Froniusmeter
+            case 0x14: break; // ?
+            case 0x28: break;
+            case 0x29: break;
+            case 0x2a: break;
+            case 0x2b: break;
+            case 0x2c: break;
+            case 0x2d: break;
+            case 0x2e: break;
+            case 0x2f: break;
             default: {
-                debug.warn('invalid frame received\n%s', this._frame);
-                this._status.errorCnt++;
+                this._monitor.incErrorInvAddrCnt();
+                debug.warn('invalid address on frame %s', this.frameAsDebugString(frame));
             }
         }
 
-        return modbusFrame;
-    }
+        const funcCode = Number.parseInt(frame.substr(2, 2), 16);
 
-
-    private handle14Frame (frame: string) {
-        if (!frame.startsWith('1403')) { return undefined; }
         let modbusFrame: ModbusRTUFrame;
+        let signalProblem = false;
 
-        switch (frame.length) {
-            case 16: case 18: {
-                if (frame.length === 16) {
-                    modbusFrame = new ModbusRTUFrame(frame);
-                } else {
-                    modbusFrame = new ModbusRTUFrame(frame, 16);
-                    debug.warn('Modbus request function code 03 for address 14, bus signal problem detected');
-                    this._status.signalProblemCnt++;
-                }
-                if (modbusFrame.ok) {
-                    debug.fine('Modbus request function code 03 for address 14');
-                    this._status.requestCount++;
-                    this._lastRequest = modbusFrame;
-                } else if (!modbusFrame.crcOk) {
-                    debug.warn('CRC Error: modbus request function code 03 for address 14');
-                    this._status.errorCnt++;
-                } else {
-                    debug.warn('Error: modbus request function code 03 for address 14\n%e', modbusFrame.error);
-                    this._status.errorCnt++;
-                }
-                break;
-            }
-
-            default:
-                if (!this._lastRequest) { return null; }
-                const expectedLength = (this._lastRequest.wordAt(4) * 2 + 5) * 2;
-                if (frame.length === expectedLength) {
-                    modbusFrame = new ModbusRTUFrame(frame);
-                } else if (frame.length === expectedLength + 2) {
-                    modbusFrame = new ModbusRTUFrame(frame, expectedLength);
-                } else {
-                    debug.warn('invalid frame received\n%s', this._frame);
-                    this._status.errorCnt++;
-                    return modbusFrame;
-                }
-                if (modbusFrame.ok) {
-                    debug.fine('Modbus response function code 03 from address 14, %d registers', this._lastRequest.wordAt(4));
-                    this._status.responseCount++;
-                    if (this._lastRequest instanceof ModbusRTUFrame) {
-                        if (this._lastRequest.address === modbusFrame.address &&
-                            this._lastRequest.funcCode === modbusFrame.funcCode) {
-                            const md = ModbusDevice.getInstance(this._config.device + ':' + modbusFrame.address);
-                            if (!md) {
-                                debug.warn('Response from unknown ModbusDevice\n%s', modbusFrame.frame);
-                            } else {
-                                md.handleResponse(this._lastRequest, modbusFrame);
-                            }
-                        } else {
-                            debug.warn('unexpected modbus response %s', modbusFrame.frame);
-                        }
-                    }
-                } else if (!modbusFrame.crcOk) {
-                    debug.warn('CRC Error: modbus response function code 03 from address 14');
-                    this._status.errorCnt++;
-                } else {
-                    debug.warn('Error: modbus response function code 03 for address 14\n%e', modbusFrame.error);
-                    this._status.errorCnt++;
-                }
+        if (funcCode >= 128) {
+            if (this._frame.length === 10) {
+                modbusFrame = new ModbusRTUFrame(frame);
+            } else if (this._frame.length === 12) {
+                modbusFrame = new ModbusRTUFrame(frame, 10);
+                signalProblem = true;
+            } else {
+                this._monitor.incErrorFrameCnt();
+                debug.warn('bad frame %s', this.frameAsDebugString(frame));
                 this._lastRequest = null;
-                break;
+                return;
+            }
+            if (!modbusFrame.crcOk) {
+                this._monitor.incErrorCrcCnt();
+                debug.warn('bad frame (CRC error) %s', this.frameAsDebugString(frame));
+
+            } else if (signalProblem) {
+                this._monitor.incErrorSignalCnt();
+                debug.finer('signal problem and modbus frame %s', this.frameAsDebugString(frame));
+
+            }
+            this._monitor.incErrroExceptCnt();
+            debug.warn('modbus exception %s from address %d', frame.substr(2, 4), addr, this.frameAsDebugString(frame));
+            this._lastRequest = null;
+            return;
         }
 
-        return modbusFrame;
+        let expectedRequestLength;
+        switch (funcCode) {
+            case 0x03: expectedRequestLength = 16; break;
+            default:
+                this._monitor.incErrorInvFuncCnt();
+                debug.warn('unexpected function code %s from address %d %s', frame.substr(2, 2), addr, this.frameAsDebugString(frame));
+                this._lastRequest = null;
+                return;
+        }
+
+        if (frame.length === expectedRequestLength) {
+            if (this._lastRequest) {
+                debug.warn('no response for last request from address %d func %s', this._lastRequest.address, this._lastRequest.funcCode);
+                this._lastRequest = null;
+            }
+            modbusFrame = new ModbusRTUFrame(frame);
+
+        } else if (frame.length === (expectedRequestLength + 2)) {
+            this._monitor.incErrorSignalCnt();
+            debug.finer('signal problem and modbus frame %s', this.frameAsDebugString(frame));
+            modbusFrame = new ModbusRTUFrame(frame, expectedRequestLength);
+
+        } else if (this._lastRequest) {
+            const length = parseInt(frame.substr(4, 2), 16) * 2 + 10;
+            if (length === frame.length) {
+                modbusFrame = new ModbusRTUFrame(frame);
+
+            } else if (length === (frame.length + 2)) {
+                modbusFrame = new ModbusRTUFrame(frame, length);
+                signalProblem = true;
+
+            } else if (addr !== this._lastRequest.address) {
+                debug.warn('invalid response to request addr %s func %s %s, wrong address %s',
+                    this._lastRequest.address, this._lastRequest.funcCode, this.frameAsDebugString(frame));
+                this._lastRequest = null;
+                return;
+
+            } else if (funcCode !== this._lastRequest.funcCode) {
+                debug.warn('invalid response to request addr %s func %s %s, wrong function code %s',
+                this._lastRequest.address, this._lastRequest.funcCode, this.frameAsDebugString(frame));
+                this._lastRequest = null;
+                return;
+
+            } else {
+                this._monitor.incErrorFrameCnt();
+                debug.warn('invalid response to request addr %s func %s %s, wrong length %s',
+                    this._lastRequest.address, this._lastRequest.funcCode, this.frameAsDebugString(frame));
+                this._lastRequest = null;
+                return;
+            }
+        }
+
+        if (!modbusFrame.crcOk) {
+            this._monitor.incErrorCrcCnt();
+            debug.warn('invalid response to request addr %s func %s, CRC error %s',
+                    this._lastRequest.address, this._lastRequest.funcCode, this.frameAsDebugString(frame));
+            this._lastRequest = null;
+            return;
+
+        } else if (signalProblem) {
+            this._monitor.incErrorSignalCnt();
+            debug.finer('signal problem and modbus frame %s', this.frameAsDebugString(frame));
+        }
+
+        // frame ok and parsed into modbusFrame
+        // now handle content of frame
+
+        if (!this._lastRequest) {
+            // handle request on last request
+            this._monitor.incRequestCnt();
+            this._lastRequest = modbusFrame;
+            return;
+        }
+
+        const md = ModbusDevice.getInstance(this._config.device + ':' + modbusFrame.address);
+        if (!md) {
+            this._monitor.incErrorOthersCnt();
+            debug.warn('Response from unknown ModbusDevice %s %s', addr, this.frameAsDebugString(frame));
+        } else {
+            this._monitor.incResponseCnt();
+            try {
+                md.handleResponse(this._lastRequest, modbusFrame);
+            } catch (err) {
+                debug.warn('handleResponse() fails\n%e', err);
+            }
+        }
+        this._lastRequest = null;
     }
 
-    private handleMonitorIntervalEvent () {
-        debug.fine('Modbus-Monitor: %o', this._status);
+}
+
+export class ModbusRtuStatus {
+
+    protected _receivedByteCnt: number;
+    protected _requestCnt:      number;
+    protected _responseCnt:     number;
+    protected _errorOthersCnt:  number;  // all errors not covered by the following errors
+    protected _errorFrameCnt:   number;  // invalid modbus frame, not covered by following errors (too short, ...)
+    protected _errorSignalCnt:  number;  // weak RS485 signal, additional '00' after frame end (does not cause CRC error)
+    protected _errorInvAddrCnt: number;  // frame received with unexpected address
+    protected _errorInvFuncCnt: number;  // frame received with unexpected address
+    protected _errorNoRequCnt:  number;  // response without request
+    protected _errorCrcCnt:     number;  // modbus frame CRC error
+    protected _errorExceptCnt:  number;  // modbus frame with exception response
+
+    constructor () {
+        this._receivedByteCnt = 0;
+        this._requestCnt      = 0;
+        this._responseCnt     = 0;
+        this._errorSignalCnt  = 0;
+        this._errorOthersCnt  = 0;
+        this._errorFrameCnt   = 0;
+        this._errorInvAddrCnt = 0;
+        this._errorInvFuncCnt = 0;
+        this._errorNoRequCnt  = 0;
+        this._errorCrcCnt     = 0;
+        this._errorExceptCnt  = 0;
+    }
+
+    public get errorCount (): number {
+        let rv = 0;
+        for (const a in this) {
+            if (!this.hasOwnProperty(a)) { continue; }
+            if (a.startsWith('_error')) {
+                const n = +this[a];
+                rv = rv + (n >= 0 ? n : 1);
+            }
+        }
+        return rv;
+    }
+
+    public get receivedByteCnt (): number {
+        return this._receivedByteCnt;
+    }
+
+    public get requestCnt (): number {
+        return this._requestCnt;
+    }
+
+    public get responseCnt (): number {
+        return this._responseCnt;
+    }
+
+    public get errorOthersCnt (): number {
+        return this._errorOthersCnt;
+    }
+
+    public get errorFrameCnt (): number {
+        return this._errorFrameCnt;
+    }
+
+    public get errorSignalCnt (): number {
+        return this._errorSignalCnt;
+    }
+
+    public get errorInvAddrCnt (): number {
+        return this._errorInvAddrCnt;
+    }
+
+    public get errorInvFuncCnt (): number {
+        return this._errorInvFuncCnt;
+    }
+
+    public get errorNoRequCnt (): number {
+        return this._errorNoRequCnt;
+    }
+
+    public get errorCrcCnt (): number {
+        return this._errorCrcCnt;
+    }
+
+    public get errorExceptCnt (): number {
+        return this._errorExceptCnt;
+    }
+}
+
+
+export class ModbusRtuMonitor  extends ModbusRtuStatus {
+
+    private _timer: NodeJS.Timer;
+
+    constructor () {
+        super();
+        this._timer = setInterval( () => this.handleTimer(), 5000);
+    }
+
+    public shutdown () {
+        if (this._timer) {
+            clearInterval(this._timer);
+            this._timer = null;
+        }
+    }
+
+    public incReceivedByteCnt (n: number) {
+        this._receivedByteCnt += n;
+    }
+
+    public incRequestCnt () {
+        this._requestCnt++;
+    }
+
+    public incResponseCnt () {
+        this._responseCnt++;
+    }
+
+
+    public incErrorOthersCnt () {
+        this._errorOthersCnt++;
+    }
+
+    public incErrorFrameCnt () {
+        this._errorFrameCnt++;
+    }
+
+    public incErrorSignalCnt () {
+        this._errorSignalCnt++;
+    }
+
+    public incErrorInvAddrCnt () {
+        this._errorInvAddrCnt++;
+    }
+
+    public incErrorInvFuncCnt () {
+        this._errorInvFuncCnt++;
+    }
+
+    public incErrorNoRequCnt () {
+        this._errorNoRequCnt++;
+    }
+
+    public incErrorCrcCnt () {
+        this._errorCrcCnt++;
+    }
+
+    public incErrroExceptCnt () {
+        this._errorExceptCnt++;
+    }
+
+
+    private handleTimer () {
+        let s = sprintf('monitor: errors=%d, requests=%d, responses=%d, bytes=%d',
+                    this.errorCount, this.requestCnt, this.responseCnt, this.receivedByteCnt);
+        if (debug.finer.enabled) {
+            s = s + sprintf('\n');
+            for (const a in this) {
+                if (!this.hasOwnProperty(a)) { continue; }
+                if (a.startsWith('error')) {
+                    s = s + '  ' + a + '=' + this[a];
+                }
+            }
+            debug.fine(s);
+        } else {
+            debug.fine(s);
+        }
     }
 
 }

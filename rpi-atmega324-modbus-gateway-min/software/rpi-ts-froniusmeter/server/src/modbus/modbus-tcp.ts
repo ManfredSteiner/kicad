@@ -3,27 +3,28 @@ import * as net from 'net';
 
 import { sprintf } from 'sprintf-js';
 
+import * as debugsx from 'debug-sx';
+const debug: debugsx.IFullLogger = debugsx.createFullLogger('modbus:ModbusTCP');
 
 export interface IModbusTcpConfig {
-    host:   string;
+    disabled?: boolean;
+    host: string;
     port: number;
 }
-
-
-import * as debugsx from 'debug-sx';
-const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('modbus:ModbusTCP');
 
 
 export class ModbusTcp {
 
     private _config: IModbusTcpConfig;
-    private _socket: net.Socket;
+    private _connection: ModbusTcpConnection;
     private _tID = 0;
-    private _pendingRequests: ModbusTcpTransactionFactory [] = [];
-    private _responseFactory: ModbusTcpResponseFactory;
 
     public constructor (config: IModbusTcpConfig) {
         this._config = config;
+    }
+
+    public get disabled (): boolean {
+        return this._config.disabled;
     }
 
     public get host (): string {
@@ -35,97 +36,30 @@ export class ModbusTcp {
     }
 
     public async start () {
-        this._socket = new net.Socket();
-        this._socket.on('data', (data) => this.handleData(data));
-        this._socket.on('end', () => this.handleEnd());
-        this._socket.on('error', (err) => this.handleError(err));
-        this._socket.on('close', () => this.handleClose());
-        this._socket.connect(this._config.port, this._config.host, () => {
-            debug.info('ModbusTCP socket opened');
-            this.refresh();
-        });
+        if (this._config.disabled) {
+            return;
+        }
+        this._connection = new ModbusTcpConnection('conn #1', this._config.host, this._config.port);
+        return this._connection.connect();
     }
 
     public async stop () {
-        if (this._socket) {
-            this._socket.destroy();
+        if (this._connection) {
+            const conn = this._connection;
+            this._connection = null;
+            return conn.destroy();
         }
     }
 
-    private handleData (data: Buffer) {
-        debug.info('receive %o', data);
-        let length = data.length;
-        while (length > 0) {
-            if (!this._responseFactory) {
-                this._responseFactory = new ModbusTcpResponseFactory();
-            }
-            length -= this._responseFactory.add(data);
-            if (this._responseFactory.isComplete) {
-                const prIndex = this._pendingRequests.findIndex ( (x) => x.transactionId === this._responseFactory.transactionId );
-                if (prIndex < 0) {
-                    debug.warn('missing pending request for ModbusTCP response');
-                } else {
-                    const pr = this._pendingRequests.splice(prIndex, 1)[0];
-                    const resp = this._responseFactory;
-                    this._responseFactory = null;
-                    pr.final(resp);
-                }
-            }
-        }
 
-        // const buffer = new ArrayBuffer(12);
-        // const bytes = new Uint8Array(buffer);
-        // for (let i = 0; i < 12; i++) {
-        //     bytes[i] = data[i + 9 + 12];
-        // }
-        // const v1 = new DataView(buffer, 0, 4);
-        // const v2 = new DataView(buffer, 4, 4);
-        // const v3 = new DataView(buffer, 8, 4);
-        // console.log(bytes, v1.getFloat32(0, false), v2.getFloat32(0, false), v3.getFloat32(0, false));
-    }
-
-    private handleClose () {
-        debug.info('socket closed');
-        this._socket = null;
-    }
-
-    private handleEnd () {
-        debug.info('socket end');
-    }
-
-    private handleError (error: Error) {
-        debug.info('socket error\n%e', error);
-    }
-
-    private refresh () {
-        // const b = Buffer.alloc(12, 0);
-        // b[0] = 0x00; // transction ID
-        // b[1] = 0x01;
-        // b[2] = 0;    // protocol id
-        // b[3] = 0;
-        // b[4] = 0;    // length in bytes, starting by Unit ID
-        // b[5] = 6;
-        // b[6] = 1;  // Unit-ID
-        // b[7] = 0x03; // function Code
-        // b[8] = (499 >> 8);    // register address
-        // b[9] = (499 & 0xff);
-        // b[10] = 0;   // quantity
-        // b[11] = 14;
-
-        // debug.info('send %o', b);
-        // this._socket.write(b);
-        // this.readHoldRegisters(1, 40001, 69).then( (x) => {
-        //     debug.info('refresh response received');
-        // }).catch( (err) => {
-        //     debug.warn('refresh failed');
-        // });
-    }
-
-    /* tslint:disable */
+    /* tslint:disable:no-bitwise */
     public async readHoldRegisters (devId: number, addr: number, quantity: number): Promise<ModbusTransaction> {
+        if (this.disabled) {
+            return Promise.reject(new Error('ModbusTCP is disabled'));
+        }
         const transactionId = this._tID;
         this._tID = (this._tID + 1) & 0xffff;
-        
+
         const b = Buffer.alloc(12, 0);
         b[0] = (transactionId >> 8) & 0xff;
         b[1] = transactionId & 0xff;
@@ -136,23 +70,26 @@ export class ModbusTcp {
         b[9] = (addr - 1) & 0xff;
         b[10] = (quantity >> 8) & 0xff;
         b[11] = quantity & 0xff;
-        debug.info('Read %d Hold registers from devId/addr=%d/%d\nsending: %o', quantity, devId, addr, b);
-        const mt = new ModbusTcpTransactionFactory();
-        this._pendingRequests.push(mt);
-        return mt.send(this._socket, b)
+        debug.fine('Read %d Hold registers from devId/addr=%d/%d\nsending: %o', quantity, devId, addr, b);
+
+        return this._connection.send(b);
     }
-    /* tslint:enable */
+    /* tslint:enable:no-bitwise */
 
 }
 
 export class ModbusTransaction {
+    protected _timer: NodeJS.Timer;
     protected _request: ModbusTcpRequest;
     protected _response: ModbusTcpResponse;
     protected _error: Error;
     protected _resolve: (result: ModbusTransaction) => void;
     protected _reject: (error: ModbusTcpTransactionError) => void;
 
-    public constructor () {
+    public constructor (request?: ModbusTcpRequest) {
+        if (request) {
+            this._request = request;
+        }
     }
 
     public get request (): ModbusTcpRequest {
@@ -237,26 +174,91 @@ export class ModbusTransaction {
 }
 
 export class ModbusTcpTransactionFactory extends ModbusTransaction {
-    public async send (to: net.Socket, request: Buffer): Promise<ModbusTransaction> {
+
+    public async send (to: net.Socket, request: Buffer, timeoutMillis = 1000): Promise<ModbusTransaction> {
         if (this._request || this._resolve || this._reject) {
-            return Promise.reject('request already sent');
+            return Promise.reject(new ModbusTcpTransactionError(this, 'sending fails, request already set or send'));
         }
         this._request = new ModbusTcpRequest(request);
+        if (!to || to.destroyed) {
+            return Promise.reject(new ModbusTcpTransactionError(this, 'sending request fails, socket closed'));
+        }
         return new Promise<ModbusTransaction>( (res, rej) => {
-            this._resolve = res;
-            this._reject = rej;
-            to.write(request);
+            try {
+                this._resolve = res;
+                this._reject = rej;
+                to.write(request);
+                this._timer = setTimeout( () => this.timeout(), timeoutMillis);
+            } catch (err) {
+                debug.warn('cannot send Modbus TCP request\n%e', err);
+                const reject = this._reject;
+                this._resolve = null;
+                this._reject = null;
+                if (this._timer) {
+                    clearTimeout(this._timer);
+                    this._timer = null;
+                }
+                reject(new ModbusTcpTransactionError(this, 'sending request fails'));
+            }
         });
     }
 
     public final (response: ModbusTcpResponse) {
         if (this._response) { throw new Error('response already set'); }
+        if (!response) { throw new Error('missing response'); }
+        if (!this._resolve) { throw new Error('final fails, missing resolve function'); }
         this._response = response;
-        if (this._resolve) {
-            const res = this._resolve;
+        if (this._response.transactionId === this._request.transactionId) {
+            if (!this._resolve) {
+                debug.warn('cannot finalize transaction, missing resolve function');
+            } else {
+                const res = this._resolve;
+                this._resolve = null;
+                this._reject = null;
+                if (this._timer) {
+                    clearTimeout(this._timer);
+                    this._timer = null;
+                }
+                res(this);
+            }
+        } else {
+            if (!this._reject) {
+                debug.warn('cannot finalize transaction, missing reject function');
+            } else {
+                const rej = this._reject;
+                this._resolve = null;
+                this._reject = null;
+                if (this._timer) {
+                    clearTimeout(this._timer);
+                    this._timer = null;
+                }
+                rej(new ModbusTcpTransactionError(this, 'invalid transaction id'));
+            }
+        }
+    }
+
+    public cancel (error: Error) {
+        if (this._reject) {
+            const rej = this._reject;
             this._resolve = null;
             this._reject = null;
-            res(this);
+            if (this._timer) {
+                clearTimeout(this._timer);
+                this._timer = null;
+            }
+            rej(new ModbusTcpTransactionError(this, 'cancelled'));
+        }
+    }
+
+    private timeout () {
+        if (!this._reject) {
+            debug.warn('timeout cannot handled, missing reject function');
+        } else {
+            const rej = this._reject;
+            this._resolve = null;
+            this._reject = null;
+            this._timer = null;
+            rej(new ModbusTcpTransactionError(this, 'Timeout'));
         }
     }
 }
@@ -472,6 +474,170 @@ export class ModbusTcpResponseFactory extends ModbusTcpResponse {
 
 }
 
+class ModbusTcpConnection {
 
+    private _name: string;
+    private _host: string;
+    private _port: number;
+    private _socket: net.Socket;
+    private _pendingRequest: ModbusTcpTransactionFactory;
+    private _waitingRequests: {
+                timeout: number,
+                res: (rv: ModbusTransaction) => void,
+                rej: (err: ModbusTcpTransactionError) => void,
+                request: Buffer
+            } [] = [];
+    private _waitingTimer: NodeJS.Timer;
+    private _responseFactory: ModbusTcpResponseFactory;
+    private _connectionReject: (err: any) => void;
+    private _destroyResolve: () => void;
+    private _destroyReject: (err: any) => void;
+
+    public constructor (name: string, host: string, port: number) {
+        this._name = name;
+        this._host = host;
+        this._port = port;
+        this._socket = new net.Socket();
+        this._socket.on('data', (data) => this.handleData(data));
+        this._socket.on('end', () => this.handleEnd());
+        this._socket.on('error', (err) => this.handleError(err));
+        this._socket.on('close', () => this.handleClose());
+    }
+
+    public async connect () {
+        if (this._connectionReject) {
+            return Promise.reject('connect pending');
+        }
+        return new Promise<void>( (res, rej) => {
+            this._connectionReject = rej;
+            this._socket.connect(this._port, this._host, () => {
+                debug.fine('%s: socket %s:%s to %s:%s opened',
+                            this._name, this._socket.localAddress, this._socket.localPort, this._host, this._port);
+                this._connectionReject = null;
+                res();
+            });
+        });
+    }
+
+    public async destroy () {
+        if (this._destroyResolve || this._destroyReject) {
+            return Promise.reject('destroy pending');
+        }
+        if (this._socket && !this._socket.destroyed) {
+            return new Promise<void>( (res, rej) => {
+                this._destroyResolve = res;
+                this._destroyReject = rej;
+            });
+        }
+    }
+
+    public async send (b: Buffer): Promise<ModbusTransaction> {
+        if (!this._pendingRequest) {
+            const mt = new ModbusTcpTransactionFactory();
+            this._pendingRequest = mt;
+            debug.finest('%s: sending request\n%o', this._name, b);
+            return mt.send(this._socket, b);
+        } else {
+            debug.finest('connection #%s, request pending, queue new request (%d queued)', this._name, this._waitingRequests.length);
+            return new Promise<ModbusTransaction>( (res, rej) => {
+                this._waitingRequests.push( { timeout: Date.now() + 2000, res: res, rej: rej, request: b } );
+                if (!this._waitingTimer) {
+                    this._waitingTimer = setInterval( () => this.checkWaitingRequests (), 1000);
+                }
+            });
+        }
+    }
+
+    private handleData (data: Buffer) {
+        debug.finest('%s: receive %d bytes %o', this._name, data.length, data);
+        let length = data.length;
+        while (length > 0) {
+            if (!this._responseFactory) {
+                this._responseFactory = new ModbusTcpResponseFactory();
+            }
+            length -= this._responseFactory.add(data);
+            if (this._responseFactory.isComplete) {
+                debug.finer('%s: response complete', this._name);
+                if (!this._pendingRequest) {
+                    debug.warn('%s: response without request', this._name);
+                    this._responseFactory = null;
+                }
+                const resp = this._responseFactory;
+                this._responseFactory = null;
+                const pr = this._pendingRequest;
+                this._pendingRequest = null;
+                if (this._waitingRequests.length > 0) {
+                    try {
+                        const r = this._waitingRequests.splice(0, 1);
+                        const mt = new ModbusTcpTransactionFactory();
+                        this._pendingRequest = mt;
+                        mt.send(this._socket, r[0].request).then( (result) => {
+                            r[0].res(result);
+                        }).catch( (err) =>  {
+                            r[0].rej(err);
+                        });
+                    } catch (err) {
+                    }
+                }
+                pr.final(resp);
+            }
+        }
+    }
+
+    private handleEnd () {
+        debug.fine('%s handleEnd()', this._name);
+        // if (this._socket) {
+        //     this._socket.destroy();
+        // }
+        this._socket = null;
+    }
+
+    private handleError (err: any) {
+        debug.fine('%s handleError()\n%o', this._name, err);
+        debug.warn(err);
+        if (this._connectionReject) {
+            const r = this._connectionReject;
+            this._connectionReject = null;
+            this._socket = null;
+            r(err);
+        }
+        if (this._destroyReject) {
+            const r = this._destroyReject;
+            this._destroyResolve = null;
+            this._destroyReject = null;
+            this._socket = null;
+            r(err);
+        }
+    }
+
+    private handleClose () {
+        debug.fine('%s handleClose()\n%o', this._name);
+        if (this._destroyResolve) {
+            const r = this._destroyResolve;
+            this._destroyResolve = null;
+            this._destroyReject = null;
+            r();
+        }
+    }
+
+    private checkWaitingRequests () {
+        const now = Date.now();
+        for (let i = 0; i < this._waitingRequests.length; i++) {
+            const wr = this._waitingRequests[i];
+            if (wr.timeout < now) {
+                const mt = new ModbusTcpTransactionFactory(new ModbusTcpRequest(wr.request));
+                wr.rej(new ModbusTcpTransactionError(mt, 'cannot send request, waiting timeout'));
+                this._waitingRequests.splice(i, 1);
+                i--;
+            }
+        }
+        if (this._waitingRequests.length === 0) {
+            clearInterval(this._waitingTimer);
+            this._waitingTimer = null;
+        }
+    }
+
+
+}
 
 

@@ -1,5 +1,5 @@
 
-export const VERSION = '0.5.0';
+export const VERSION = '0.6.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -69,15 +69,20 @@ import * as SerialPort from 'serialport';
 import { sprintf } from 'sprintf-js';
 // import { ModbusCrc } from './modbus/modbus-crc';
 import { Server } from './server';
+import { PiTechnik } from './devices/pi-technik';
 import { ModbusDevice } from './devices/modbus-device';
 import { ModbusRtu } from './modbus/modbus-rtu';
 import { ModbusTcp } from './modbus/modbus-tcp';
 import { FroniusMeter, IFroniusMeterValues } from './devices/fronius-meter';
 import { FroniusDevice14, IFroniusDevice14Values } from './devices/fronius-device14';
 import { FroniusSymo } from './devices/fronius-symo';
+import { Monitor } from './monitor';
 
 let modbusRtu: ModbusRtu;
 let modbusTcp: ModbusTcp;
+let froniusSymo: FroniusSymo;
+let piTechnik: PiTechnik;
+let monitor: Monitor;
 
 doStartup();
 
@@ -90,6 +95,8 @@ async function doStartup () {
         }
         modbusRtu = new ModbusRtu(nconf.get('modbus'));
         modbusTcp = new ModbusTcp(nconf.get('froniusSymo'));
+        monitor = Monitor.Instance;
+        piTechnik = await PiTechnik.initInstance(nconf.get('pi-technik'));
 
         const fm = new FroniusMeter(modbusRtu, 1);
         fm.on('update', appendToHistoryFile);
@@ -98,6 +105,7 @@ async function doStartup () {
 
         await startupParallel();
         await startupServer();
+        await monitor.start();
         doSomeTests();
         process.on('SIGINT', () => {
             console.log('...caught interrupt signal');
@@ -129,11 +137,13 @@ async function shutdown (src: string): Promise<void> {
         console.log('Some jobs hanging? End program with exit code 1!');
         process.exit(1);
     }, shutdownMillis > 0 ? shutdownMillis : 500);
-    await modbusRtu.close();
-    await modbusTcp.stop();
+    let rv = 0;
+    try { await modbusRtu.close(); } catch (err) { rv++; console.log(err); }
+    try { await modbusTcp.stop(); } catch (err) { rv++; console.log(err); }
+    try { await froniusSymo.stop(); } catch (err) { rv++; console.log(err); }
     // await new Promise<void>( (resolve, reject) => { setTimeout(() => { resolve(); }, 2000); } );
     clearTimeout(timer);
-    process.exit(0);
+    process.exit(rv);
 }
 
 function startupPrintVersion (info?: git.GitInfo) {
@@ -150,9 +160,9 @@ async function startupParallel (): Promise<any []> {
     for (const p of rv) {
         await p;
     }
-    const froniusSymo = new FroniusSymo(modbusTcp, 1);
+    froniusSymo = new FroniusSymo(modbusTcp, 1);
     ModbusDevice.addInstance(froniusSymo);
-    await froniusSymo.init();
+    await froniusSymo.start();
     debug.info('startupParallel finished');
     return rv;
 }

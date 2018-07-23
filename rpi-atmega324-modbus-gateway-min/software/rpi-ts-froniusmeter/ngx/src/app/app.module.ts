@@ -7,6 +7,9 @@ import { HttpClientModule } from '@angular/common/http';
 import { FilterPipe } from './pipes/filter-pipe';
 import { AppComponent } from './app.component';
 import { TestComponent } from './test.component';
+import { GridComponent } from './components/grid.component';
+import { OverviewComponent } from './components/overview.component';
+import { OverviewChartComponent } from './components/overview-chart.component';
 import { FroniusmeterComponent } from './components/froniusmeter.component';
 import { FroniusSymoComponent } from './components/fronius-symo.component';
 
@@ -16,8 +19,9 @@ import { AccordionModule, AlertModule, CollapseModule } from 'ngx-bootstrap';
 
 
 const appRoutes: Routes = [
-    { path: '', redirectTo: '/app/test', pathMatch: 'full' },
-    { path: 'app/test', component: TestComponent },
+    { path: '', redirectTo: '/app/grid', pathMatch: 'full' },
+    { path: 'app/grid', component: GridComponent },
+    { path: 'app/overview', component: OverviewComponent },
     { path: 'app/froniusmeter', component: FroniusmeterComponent },
     { path: 'app/froniussymo', component: FroniusSymoComponent }
 ];
@@ -27,6 +31,8 @@ const appRoutes: Routes = [
         FilterPipe,
         AppComponent,
         TestComponent,
+        GridComponent,
+        OverviewComponent, OverviewChartComponent,
         FroniusmeterComponent,
         FroniusSymoComponent
     ],

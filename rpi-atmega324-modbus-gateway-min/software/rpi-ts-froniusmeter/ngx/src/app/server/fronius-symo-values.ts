@@ -3,7 +3,7 @@ export interface IFroniusSymoValues {
     froniusRegister?:   { createdAt: Date, error?: string, regs?: IFroniusRegister };
     common?:            { createdAt: Date, error?: string, regs?: ICommon };
     inverter?:          { createdAt: Date, error?: string, regs?: IInverter };
-    nameplate?:         { createdAt: Date, error?: string, regs?: INamePlate };
+    nameplate?:         { createdAt: Date, error?: string, regs?: INameplate };
     setting?:           { createdAt: Date, error?: string, regs?: ISetting };
     status?:            { createdAt: Date, error?: string, regs?: IStatus };
     control?:           { createdAt: Date, error?: string, regs?: IControl };
@@ -66,7 +66,7 @@ export interface IInverter {
 }
 
 // Base address 40131 (float)
-export interface INamePlate {
+export interface INameplate {
     r04_WRtg:            number;
     r05_WRtg_SF:         number;
     r06_VARtg:           number;
@@ -260,7 +260,7 @@ export interface IMeter {
 
 
 
-class SymoModel<T> {
+abstract class SymoModel<T> {
 
     // https://stackoverflow.com/questions/11887934
     public static isDaylightSavingTime (t: Date) {
@@ -269,8 +269,10 @@ class SymoModel<T> {
         return t.getTimezoneOffset() < Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
     }
 
+    /* tslint:disable */
     protected _regs: T;
     private _createdAt: Date;
+    /* tslint:enable */
 
     public constructor (createdAt: number | Date | string, regs: T) {
         if (typeof(createdAt) === 'number') {
@@ -365,6 +367,7 @@ export class FroniusRegister extends SymoModel<IFroniusRegister> {
             siteEnergyTotal: this.normaliseUnit(this.siteEnergyTotal, 2, 'Wh')
         };
     }
+
 }
 
 
@@ -495,7 +498,7 @@ export class Inverter extends SymoModel<IInverter> {
     }
 }
 
-export class Nameplate extends SymoModel<INamePlate> {
+export class Nameplate extends SymoModel<INameplate> {
     public get continousActivePowerOutputCapability (): number { return this.scale(this._regs.r04_WRtg, this._regs.r05_WRtg_SF); }
     public get continousApparentPowerCapability (): number { return this.scale(this._regs.r06_VARtg, this._regs.r07_VARtg_SF); }
     public get continousReactivePowerQ1Capability (): number { return this.scale(this._regs.r08_VArRtgQ1, this._regs.r12_VArRtg_SF); }
@@ -649,6 +652,13 @@ export class Storage extends SymoModel<IStorage> {
     public get dischargeRateInPercent (): number { return this.scale(this._regs.r13_OutWRte, this._regs.r26_InOutWRte_SF); }
     public get chargeRateInPercent (): number { return this.scale(this._regs.r14_InWRte, this._regs.r26_InOutWRte_SF); }
     public get isChargingFromGridEnabled (): boolean { return this._regs.r18_ChaGriSet === 1; }
+    public get isOff(): boolean { return this._regs.r12_ChaSt === 1; }
+    public get isEmpty(): boolean { return this._regs.r12_ChaSt === 2; }
+    public get isDischarging(): boolean { return this._regs.r12_ChaSt === 3; }
+    public get isCharging (): boolean { return this._regs.r12_ChaSt === 4; }
+    public get isFull(): boolean { return this._regs.r12_ChaSt === 5; }
+    public get isHolding(): boolean { return this._regs.r12_ChaSt === 6; }
+    public get isInCalibration(): boolean { return this._regs.r12_ChaSt === 7; }
 
     public get chargeState (): string {
         switch (this._regs.r12_ChaSt) {
