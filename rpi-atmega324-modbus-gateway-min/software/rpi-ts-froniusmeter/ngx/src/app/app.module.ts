@@ -6,6 +6,7 @@ import { HttpClientModule } from '@angular/common/http';
 
 import { FilterPipe } from './pipes/filter-pipe';
 import { AppComponent } from './app.component';
+import { NavbarComponent } from './navbar.component';
 import { TestComponent } from './test.component';
 import { GridComponent } from './components/grid.component';
 import { OverviewComponent } from './components/overview.component';
@@ -19,7 +20,7 @@ import { AccordionModule, AlertModule, CollapseModule } from 'ngx-bootstrap';
 
 
 const appRoutes: Routes = [
-    { path: '', redirectTo: '/app/grid', pathMatch: 'full' },
+    { path: '', redirectTo: '/app/overview', pathMatch: 'full' },
     { path: 'app/grid', component: GridComponent },
     { path: 'app/overview', component: OverviewComponent },
     { path: 'app/froniusmeter', component: FroniusmeterComponent },
@@ -29,7 +30,7 @@ const appRoutes: Routes = [
 @NgModule({
     declarations: [
         FilterPipe,
-        AppComponent,
+        AppComponent, NavbarComponent,
         TestComponent,
         GridComponent,
         OverviewComponent, OverviewChartComponent,

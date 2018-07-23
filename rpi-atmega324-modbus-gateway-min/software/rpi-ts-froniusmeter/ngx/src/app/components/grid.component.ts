@@ -37,14 +37,13 @@ export class GridComponent implements OnInit, OnDestroy {
         { backgroundColor: Array(60).fill('#FF0000') },
         { backgroundColor: Array(60).fill('#00A000') },
         { backgroundColor: Array(60).fill('#4040FF') },
-        { backgroundColor: Array(60).fill('rgba(0,0,0,0)'), pointBorderColor: '#000', pointBackgroundColor: '#000' }
+        { backgroundColor: 'rgba(0,0,0,0)', borderColor: '#000000', pointBorderColor: '#000', pointBackgroundColor: '#000' }
     ];
 
 
     private _froniusMeterValuesSubsciption: Subscription;
 
     public constructor (private dataService: DataService) {
-        console.log('constructor');
         for (let i = 0; i < 60; i++) {
             this.barChartLabels.push( (i % 10) === 0 ? (i - 60) + 's' : '');
         }
@@ -52,7 +51,6 @@ export class GridComponent implements OnInit, OnDestroy {
 
     public ngOnInit () {
         const values = this.dataService.getFroniusMeterValues();
-        console.log(values);
         for (const v of values) {
             this.barChartData[0].data.push(v.activePowerL1);
             this.barChartData[1].data.push(v.activePowerL2);

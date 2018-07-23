@@ -1,5 +1,5 @@
 
-export const VERSION = '0.6.0';
+export const VERSION = '0.7.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -160,7 +160,7 @@ async function startupParallel (): Promise<any []> {
     for (const p of rv) {
         await p;
     }
-    froniusSymo = new FroniusSymo(modbusTcp, 1);
+    froniusSymo = new FroniusSymo(modbusTcp, nconf.get('froniusSymo'));
     ModbusDevice.addInstance(froniusSymo);
     await froniusSymo.start();
     debug.info('startupParallel finished');

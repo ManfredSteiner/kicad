@@ -10,6 +10,27 @@ import * as debugsx from 'debug-sx';
 import { ModbusDevice } from './modbus-device';
 const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('devices:FroniusSymo');
 
+export interface IFroniusSymoConfig {
+    disabled?: boolean;
+    host: string;
+    port: number;
+    modbusAddress?: number;
+    timeoutMillis?: {
+        default: number;
+        froniusRegister?: number;
+        common?: number;
+        inverter?: number;
+        nameplate?: number;
+        setting?: number;
+        status?: number;
+        control?: number;
+        storage?: number;
+        inverterExtension?: number;
+        stringCombiner?: number;
+        meter?: number;
+    };
+}
+
 
 export class FroniusSymo extends ModbusTcpDevice {
 
@@ -21,6 +42,8 @@ export class FroniusSymo extends ModbusTcpDevice {
         }
         return rv instanceof FroniusSymo ? rv : null;
     }
+
+    private _config: IFroniusSymoConfig;
 
     private _froniusRegister: FroniusRegister;
     private _common: Common;
@@ -34,8 +57,17 @@ export class FroniusSymo extends ModbusTcpDevice {
     private _stringCombiner: StringCombiner;
     private _meter: Meter;
 
-    public constructor (gateway: ModbusTcp, unitId: number) {
-        super(gateway, unitId);
+    public constructor (gateway: ModbusTcp, config: IFroniusSymoConfig) {
+        super(gateway, config.modbusAddress || 1);
+        if (!config.timeoutMillis) { config.timeoutMillis = { default: 1000 }; };
+        if (config.timeoutMillis.default <= 0) { throw new Error('invalid FroniusSymo config'); }
+        for (const a of [ 'froniusRegister', 'common', 'inverter', 'nameplate', 'setting', 'status',
+                          'control', 'storage', 'inverterExtension', 'stringCombiner', 'meter']) {
+            if (!(<any>config.timeoutMillis)[a]) {
+                (<any>config.timeoutMillis)[a] = config.timeoutMillis.default;
+            }
+        }
+        this._config = config;
     }
 
     public get froniusRegister (): FroniusRegister { return this._froniusRegister; }
@@ -69,9 +101,10 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readFroniusRegister (): Promise<FroniusRegister> {
         try {
+            const to = this._config.timeoutMillis.froniusRegister;
             if (!this._froniusRegister || (Date.now() - this._froniusRegister.createdAt.getTime() > 1000 )) {
-                const mt212 = await this._gateway.readHoldRegisters(this.address, 212, 5);
-                const mt500 = await this._gateway.readHoldRegisters(this.address, 500, 14);
+                const mt212 = await this._gateway.readHoldRegisters(this.address, 212, 5, to);
+                const mt500 = await this._gateway.readHoldRegisters(this.address, 500, 14, to);
                 this._froniusRegister = FroniusRegisterFactory.parseModbusTransaction(mt212, mt500);
                 if (debug.fine.enabled) {
                     debug.fine('readFroniusRegister(): %o\n%O', this._froniusRegister, this._froniusRegister.toHumanReadableObject());
@@ -86,8 +119,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readCommon (): Promise<Common> {
         try {
+            const to = this._config.timeoutMillis.common;
             if (!this._common || (Date.now() - this._common.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40001, 69);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40001, 69, to);
                 this._common = CommonFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readCommon(): %o\n%O', this._common, this._common.toHumanReadableObject());
@@ -102,8 +136,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readInverter (): Promise<Inverter> {
         try {
+            const to = this._config.timeoutMillis.inverter;
             if (!this._inverter || (Date.now() - this._inverter.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40070, 62);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40070, 62, to);
                 this._inverter = InverterFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readInverter(): %o\n%O', this._inverter, this._inverter.toHumanReadableObject());
@@ -118,8 +153,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readNameplate (): Promise<Nameplate> {
         try {
+            const to = this._config.timeoutMillis.nameplate;
             if (!this._nameplate || (Date.now() - this._nameplate.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40132, 28);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40132, 28, to);
                 this._nameplate = NameplateFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readNamePlate(): %o\n%O', this._nameplate, this._nameplate.toHumanReadableObject());
@@ -134,8 +170,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readSetting (): Promise<Setting> {
         try {
+            const to = this._config.timeoutMillis.setting;
             if (!this._setting || (Date.now() - this._setting.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40160, 31);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40160, 31, to);
                 this._setting = SettingFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readSetting(): %o\n%O', this._setting, this._setting.toHumanReadableObject());
@@ -150,8 +187,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readStatus (): Promise<Status> {
         try {
+            const to = this._config.timeoutMillis.status;
             if (!this._status || (Date.now() - this._status.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40192, 45);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40192, 45, to);
                 this._status = StatusFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readStatus(): %o\n%O', this._status, this._status.toHumanReadableObject());
@@ -166,8 +204,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readControl (): Promise<Control> {
         try {
+            const to = this._config.timeoutMillis.control;
             if (!this._control || (Date.now() - this._control.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40237, 27);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40237, 27, to);
                 this._control = ControlFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readControl(): %o\n%O', this._control, this._control.toHumanReadableObject());
@@ -182,8 +221,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readStorage (): Promise<Storage> {
         try {
+            const to = this._config.timeoutMillis.storage;
             if (!this._storage || (Date.now() - this._storage.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40314, 26);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40314, 26, to);
                 this._storage = StorageFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readStorage(): %o\n%O', this._storage, this._storage.toHumanReadableObject());
@@ -199,8 +239,9 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readInverterExtension (): Promise<InverterExtension> {
         try {
+            const to = this._config.timeoutMillis.inverterExtension;
             if (!this._inverterExtension || (Date.now() - this._inverterExtension.createdAt.getTime() > 1000 )) {
-                const mt = await this._gateway.readHoldRegisters(this.address, 40264, 50);
+                const mt = await this._gateway.readHoldRegisters(this.address, 40264, 50, to);
                 this._inverterExtension = InverterExtensionFactory.parseModbusTransaction(mt);
                 if (debug.fine.enabled) {
                     debug.fine('readInverterExtension(): %o\n%O', this._inverterExtension, this._inverterExtension.toHumanReadableObject());
@@ -216,8 +257,9 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readStringCombiner (): Promise<StringCombiner> {
         let mt: ModbusTransaction;
         try {
+            const to = this._config.timeoutMillis.stringCombiner;
             if (!this._stringCombiner || (Date.now() - this._stringCombiner.createdAt.getTime() > 1000 )) {
-                mt = await this._gateway.readHoldRegisters(this.address, 40070, 58);
+                mt = await this._gateway.readHoldRegisters(this.address, 40070, 58, to);
             } else {
                 return this._stringCombiner;
             }
@@ -241,9 +283,10 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readMeter (): Promise<Meter> {
         try {
+            const to = this._config.timeoutMillis.meter;
             if (!this._meter || (Date.now() - this._meter.createdAt.getTime() > 1000 )) {
-                const mt070 = await this._gateway.readHoldRegisters(240, 40070, 125);
-                const mt194 = await this._gateway.readHoldRegisters(240, 40194, 2);
+                const mt070 = await this._gateway.readHoldRegisters(240, 40070, 125, to);
+                const mt194 = await this._gateway.readHoldRegisters(240, 40194, 2, to);
                 // debug.info('request 1:\nMBAP: %o\nPDU:  %o', mt070.request.mbapHeader, mt070.request.pdu);
                 // debug.info('response 1:\nMBAP: %o\nPDU:  %o', mt070.response.mbapHeader, mt070.response.pdu);
                 this._meter = MeterFactory.parseModbusTransaction(mt070, mt194);

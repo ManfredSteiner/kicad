@@ -38,7 +38,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     public accordions: IAccordion [];
 
     public constructor (private _dataService: DataService, private _configService: ConfigService) {
-        console.log('constructor');
         const x = this._configService.pop('overview:__accordionData');
         if (x) {
             this._accordionData = x;
@@ -68,7 +67,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     }
 
     public ngOnDestroy() {
-        console.log('onDestroy');
         this._monitorValuesSubsciption.unsubscribe();
         this._monitorValuesSubsciption = null;
         this._configService.push('overview:__accordionData', this._accordionData);
@@ -81,7 +79,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     }
 
     public handleMonitorData (data: IMonitorRecordData []) {
-        console.log(data);
         if (!Array.isArray(data) || data.length === 0) {
             this._data = null;
             this._accordionData.data.infos = [];

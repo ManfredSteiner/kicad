@@ -32,10 +32,10 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
     ];
 
     public chartColors: any [] = [
-        { backgroundColor: Array(60).fill('rgba(0,0,0,0)'), borderColor: '#000000', pointRadius: 0 },
-        { backgroundColor: Array(60).fill('rgba(0,0,0,0)'), borderColor: '#0000ff', pointRadius: 0 },
-        { backgroundColor: Array(60).fill('rgba(0,0,0,0)'), borderColor: '#00ff00', pointRadius: 0 },
-        { backgroundColor: Array(60).fill('rgba(0,0,0,0)'), borderColor: '#ff0000', pointRadius: 0 }
+        { backgroundColor: 'rgba(0,0,0,0.0)', borderColor: '#000000', pointRadius: 0 },
+        { backgroundColor: 'rgba(0,0,0,0.0)', borderColor: '#0000ff', pointRadius: 0 },
+        { backgroundColor: 'rgba(0,0,0,0.0)', borderColor: '#00ff00', pointRadius: 0 },
+        { backgroundColor: 'rgba(0,0,0,0.0)', borderColor: '#ff0000', pointRadius: 0 }
     ];
 
     public showValues: { key: string, value: string } [] = [];
@@ -44,7 +44,6 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
 
     constructor (private dataService: DataService) {
-        console.log('constructor');
         for (let i = 0; i < 60; i++) {
             this.chartLabels.push( (i % 10) === 0 ? (i - 60) + 's' : '');
         }
@@ -61,11 +60,11 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
     }
 
     public chartClicked(e: any): void {
-        console.log(e);
+        // console.log(e);
     }
 
     public chartHovered(e: any): void {
-        console.log(e);
+        // console.log(e);
     }
 
 
@@ -100,7 +99,8 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         this.showValues.push({
             key: 'Speicher',
             value: v.data.storage.chargeLevelInPercent + '% / ' +
-                   (v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100) + 'Wh'
+                   (v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100) + 'Wh' +
+                   ' (' + v.data.storage.chargeState + ')'
         });
 
     }

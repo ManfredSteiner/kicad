@@ -53,7 +53,7 @@ export class ModbusTcp {
 
 
     /* tslint:disable:no-bitwise */
-    public async readHoldRegisters (devId: number, addr: number, quantity: number): Promise<ModbusTransaction> {
+    public async readHoldRegisters (devId: number, addr: number, quantity: number, timeoutMillis?: number): Promise<ModbusTransaction> {
         if (this.disabled) {
             return Promise.reject(new Error('ModbusTCP is disabled'));
         }
@@ -72,7 +72,7 @@ export class ModbusTcp {
         b[11] = quantity & 0xff;
         debug.fine('Read %d Hold registers from devId/addr=%d/%d\nsending: %o', quantity, devId, addr, b);
 
-        return this._connection.send(b);
+        return this._connection.send(b, timeoutMillis);
     }
     /* tslint:enable:no-bitwise */
 
@@ -531,16 +531,16 @@ class ModbusTcpConnection {
         }
     }
 
-    public async send (b: Buffer): Promise<ModbusTransaction> {
+    public async send (b: Buffer, timeoutMillis = 2000): Promise<ModbusTransaction> {
         if (!this._pendingRequest) {
             const mt = new ModbusTcpTransactionFactory();
             this._pendingRequest = mt;
             debug.finest('%s: sending request\n%o', this._name, b);
-            return mt.send(this._socket, b);
+            return mt.send(this._socket, b, timeoutMillis);
         } else {
             debug.finest('connection #%s, request pending, queue new request (%d queued)', this._name, this._waitingRequests.length);
             return new Promise<ModbusTransaction>( (res, rej) => {
-                this._waitingRequests.push( { timeout: Date.now() + 2000, res: res, rej: rej, request: b } );
+                this._waitingRequests.push( { timeout: Date.now() + timeoutMillis, res: res, rej: rej, request: b } );
                 if (!this._waitingTimer) {
                     this._waitingTimer = setInterval( () => this.checkWaitingRequests (), 1000);
                 }
@@ -577,9 +577,12 @@ class ModbusTcpConnection {
                             r[0].rej(err);
                         });
                     } catch (err) {
+                        debug.warn('handleData ???\n%e', err);
                     }
                 }
-                pr.final(resp);
+                try {
+                    pr.final(resp);
+                } catch (err) { debug.warn('response available, final fails -> increase timeout?\n%e', err); }
             }
         }
     }

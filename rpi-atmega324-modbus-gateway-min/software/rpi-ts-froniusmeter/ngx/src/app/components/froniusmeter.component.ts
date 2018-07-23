@@ -22,14 +22,12 @@ export class FroniusmeterComponent implements OnInit, OnDestroy {
     }
 
     public ngOnInit () {
-        console.log('onInit');
         // this._timer = setInterval( () => this.refresh(), 1000);
         this._froniusMeterValuesSubsciption =
             this.dataService.froniusMeterObservable.subscribe((value) => this.handleFroniusMeterValues(value));
     }
 
     public ngOnDestroy() {
-        console.log('onDestroy');
         if (this._timer) {
             clearInterval(this._timer);
             this._timer = null;
