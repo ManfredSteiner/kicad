@@ -77,7 +77,7 @@ export class ModbusRtu {
             await this._serialPort.close();
             debug.info('serial port ' + this._config.device + ' closed');
         } catch (err) {
-            debug.info('cannot close serial port ' + this._config.device, err);
+            debug.warn('cannot close serial port ' + this._config.device, err);
         }
     }
 

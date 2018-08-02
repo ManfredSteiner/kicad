@@ -18,6 +18,7 @@ export class ModbusTcp {
     private _config: IModbusTcpConfig;
     private _connection: ModbusTcpConnection;
     private _tID = 0;
+    private _isStopped: boolean;
 
     public constructor (config: IModbusTcpConfig) {
         this._config = config;
@@ -25,6 +26,10 @@ export class ModbusTcp {
 
     public get disabled (): boolean {
         return this._config.disabled;
+    }
+
+    public get isStopped (): boolean {
+        return this._isStopped;
     }
 
     public get host (): string {
@@ -44,6 +49,7 @@ export class ModbusTcp {
     }
 
     public async stop () {
+        this._isStopped = true;
         if (this._connection) {
             const conn = this._connection;
             this._connection = null;
@@ -54,9 +60,8 @@ export class ModbusTcp {
 
     /* tslint:disable:no-bitwise */
     public async readHoldRegisters (devId: number, addr: number, quantity: number, timeoutMillis?: number): Promise<ModbusTransaction> {
-        if (this.disabled) {
-            return Promise.reject(new Error('ModbusTCP is disabled'));
-        }
+        if (this.disabled) { return Promise.reject(new Error('ModbusTCP is disabled')); }
+        if (!this._connection) { return Promise.reject(new Error('ModbusTCP connection closed')); }
         const transactionId = this._tID;
         this._tID = (this._tID + 1) & 0xffff;
 
@@ -527,6 +532,7 @@ class ModbusTcpConnection {
             return new Promise<void>( (res, rej) => {
                 this._destroyResolve = res;
                 this._destroyReject = rej;
+                this._socket.end();
             });
         }
     }

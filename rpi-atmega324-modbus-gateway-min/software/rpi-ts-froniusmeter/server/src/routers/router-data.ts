@@ -35,7 +35,7 @@ export class RouterData {
         this._router.get('/froniusmeter', (req, res, next) => this.getFroniusMeterJson(req, res, next));
         this._router.get('/froniussymo', (req, res, next) => this.getFroniusSymoJson(req, res, next));
         this._router.get('/monitor', (req, res, next) => this.getMonitorJson(req, res, next));
-        this._router.get('/*', (req, res, next) => this.getAll(req, res, next));
+        // this._router.get('/*', (req, res, next) => this.getAll(req, res, next));
 
     }
 
@@ -50,11 +50,14 @@ export class RouterData {
     private async getFroniusMeterJson (req: express.Request, res: express.Response, next: express.NextFunction) {
         try {
             const fd = FroniusMeter.getInstance(req.query.address ? req.query.address : 1);
+            let rv: any;
             if (!fd) {
-                res.json({ error: 'device not found' });
+                rv = { error: 'device not found' };
             } else {
-                res.json(fd.toValuesObject());
+                rv = fd.toValuesObject();
             }
+            debug.fine('query %o -> response: %o', req.query, rv);
+            res.json(rv);
         } catch (err) {
             handleError(err, req, res, next, debug);
         }
@@ -176,7 +179,7 @@ export class RouterData {
                     rv.meter = { createdAt: now, error: err.toString() };
                 }
             }
-            debug.info('query %o -> response: %o', req.query, rv);
+            debug.fine('query %o -> response: %o', req.query, rv);
             res.json(rv);
         } catch (err) {
             handleError(err, req, res, next, debug);
@@ -194,7 +197,7 @@ export class RouterData {
                     rv.push(d.rawData);
                 }
             }
-            debug.info('query %o -> response: %o', req.query, rv);
+            debug.fine('query %o -> response: %o', req.query, rv);
             res.json(rv);
         } catch (err) {
             handleError(err, req, res, next, debug);

@@ -59,7 +59,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public constructor (gateway: ModbusTcp, config: IFroniusSymoConfig) {
         super(gateway, config.modbusAddress || 1);
-        if (!config.timeoutMillis) { config.timeoutMillis = { default: 1000 }; };
+        if (!config.timeoutMillis) { config.timeoutMillis = { default: 1000 }; }
         if (config.timeoutMillis.default <= 0) { throw new Error('invalid FroniusSymo config'); }
         for (const a of [ 'froniusRegister', 'common', 'inverter', 'nameplate', 'setting', 'status',
                           'control', 'storage', 'inverterExtension', 'stringCombiner', 'meter']) {

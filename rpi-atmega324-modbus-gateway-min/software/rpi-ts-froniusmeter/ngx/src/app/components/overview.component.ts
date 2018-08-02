@@ -74,8 +74,13 @@ export class OverviewComponent implements OnInit, OnDestroy {
     }
 
     private handleMonitorValues (v: MonitorRecord) {
-        this._data = v;
-        this._accordionData.data.infos = this.createAccordionInfo(this._data.toHumanReadableObject());
+        if (v) {
+            this._data = v;
+            this._accordionData.data.infos = this.createAccordionInfo(this._data.toHumanReadableObject());
+        } else {
+            this._data = null;
+            this._accordionData.data.infos = [];
+        }
     }
 
     public handleMonitorData (data: IMonitorRecordData []) {

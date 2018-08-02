@@ -42,7 +42,6 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
     private _monitorValuesSubsciption: Subscription;
 
-
     constructor (private dataService: DataService) {
         for (let i = 0; i < 60; i++) {
             this.chartLabels.push( (i % 10) === 0 ? (i - 60) + 's' : '');
@@ -50,6 +49,11 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
     }
 
     public ngOnInit () {
+        for (let i = 0; i < 60; i++) {
+            for (let j = 0; j < this.chartData.length; j++) {
+                this.chartData[j].data.push(null);
+            }
+        }
         this._monitorValuesSubsciption =
             this.dataService.monitorObservable.subscribe((value) => this.handleMonitorValues(value));
     }
@@ -69,15 +73,21 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
 
     private handleMonitorValues (v: MonitorRecord) {
-        this.chartData[0].data.push(v.gridActivePower);
-        this.chartData[1].data.push(v.storagePower);
-        this.chartData[2].data.push(v.pvActivePower);
-        this.chartData[3].data.push(-v.loadActivePower);
+        if (!v) {
+            this.chartData[0].data.push(null);
+            this.chartData[1].data.push(null);
+            this.chartData[2].data.push(null);
+            this.chartData[3].data.push(null);
+        } else {
+            this.chartData[0].data.push(v.gridActivePower);
+            this.chartData[1].data.push(v.storagePower);
+            this.chartData[2].data.push(v.pvActivePower);
+            this.chartData[3].data.push(-v.loadActivePower);
+        }
         if (this.chartData[0].data.length >  this.chartLabels.length) {
-            this.chartData[0].data.splice(0, 1);
-            this.chartData[1].data.splice(0, 1);
-            this.chartData[2].data.splice(0, 1);
-            this.chartData[3].data.splice(0, 1);
+            for (let j = 0; j < this.chartData.length; j++) {
+                this.chartData[j].data.splice(0, 1);
+            }
         }
         this.chart.chart.update();
 
@@ -88,20 +98,24 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         // this.showValues.push({ key: 'string1_P', value: invExt['string1_Power'] });
         // this.showValues.push({ key: 'string2_P', value: invExt['string2_Power'] });
         // this.showValues.push({ key: 'dcPower', value: inv['dcPower'] });
-        this.showValues.push({
-            key: 'PV-Süd',
-            value: v.data.inverterExtension.string1_Power.toString() + 'W / ' + v.data.froniusRegister.siteEnergyDay + 'Wh'
-        });
-        this.showValues.push({
-            key: 'PV-Ost/West',
-            value: v.data.saiaMeter.p + 'W / ' + v.data.saiaMeter.de1 + 'Wh'
-        });
-        this.showValues.push({
-            key: 'Speicher',
-            value: v.data.storage.chargeLevelInPercent + '% / ' +
-                   (v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100) + 'Wh' +
-                   ' (' + v.data.storage.chargeState + ')'
-        });
+        if (v) {
+            this.showValues.push({
+                key: 'PV-Süd',
+                value: v.data.inverterExtension.string1_Power.toString() + 'W / ' + v.data.froniusRegister.siteEnergyDay + 'Wh'
+            });
+            if (Array.isArray(v.data.extPvMeter) && v.data.extPvMeter.length === 1) {
+                this.showValues.push({
+                    key: 'PV-Ost/West',
+                    value: v.data.extPvMeter[0].p + 'W / ' + v.data.extPvMeter[0].de1 + 'Wh'
+                });
+            }
+            this.showValues.push({
+                key: 'Speicher',
+                value: v.data.storage.chargeLevelInPercent + '% / ' +
+                    (v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100) + 'Wh' +
+                    ' (' + v.data.storage.chargeState + ')'
+            });
+        }
 
     }
 

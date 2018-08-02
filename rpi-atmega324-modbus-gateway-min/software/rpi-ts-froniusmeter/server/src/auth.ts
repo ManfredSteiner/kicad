@@ -7,8 +7,8 @@ import * as nconf from 'nconf';
 
 import { handleError, RouterError, BadRequestError, AuthenticationError, NotFoundError } from './routers/router-error';
 import { UserLogin, IUserLogin } from './client/user-login';
-import { User, IUser } from './database/user';
-import { Database } from './database/database';
+import { User, IUser } from './db/user';
+import { Database } from './db/database';
 import { IRequestWithUser, IRequestUser } from './server';
 // import { delayMillis } from './utils/util';
 

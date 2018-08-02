@@ -1,4 +1,7 @@
 
+import * as debugsx from 'debug-sx';
+const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('server');
+
 import * as path from 'path';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -12,20 +15,18 @@ import * as jwt from 'jsonwebtoken';
 
 import { handleError, RouterError, BadRequestError, AuthenticationError, NotFoundError } from './routers/router-error';
 import { Auth } from './auth';
-import { IUser, User } from './database/user';
+import { IUser, User } from './db/user';
 
 import { RouterData } from './routers/router-data';
-// import { RouterRes } from './routers/router-res';
-// import { RouterMd } from './routers/router-md';
 
-// import { UserLogin, IUserLogin } from './client/user-login';
-// import { IUserAuth } from './client/user-auth';
-
-// import { Database } from './database/database';
-// import { delayMillis } from './utils/util';
-
-import * as debugsx from 'debug-sx';
-const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('server');
+interface IServerConfig {
+    start: boolean;
+    port: number;
+    morgan: {
+        disabled?: boolean,
+        config?: string
+    };
+}
 
 export class Server {
 
@@ -41,27 +42,35 @@ export class Server {
     // ************************************************
 
     private _express: express.Express;
+    private _config: IServerConfig;
+    private _server: http.Server;
 
-    private constructor () {}
+    private constructor (config?: IServerConfig) {
+        config = config || nconf.get('server');
+        if (!config) { throw new Error('missing config'); }
+        if (config.start === undefined || config.start === true) {
+            if (config.port < 0 || config.port > 0xffff) { throw new Error('invalid/missing port in config'); }
+        }
+        this._config = config;
+    }
+
+    public async stop () {
+        if (this._server) {
+            this._server.close();
+            this._server = null;
+        }
+    }
 
     public async start (port?: number): Promise<void> {
-        if (port === undefined) {
-            const configServer = nconf.get('server');
-            if (configServer && configServer.port) {
-                port = configServer.port;
-            }
-        }
-        if (!(port >= 0 && port <= 0xffff)) {
-            throw new Error('missing port, cannot start server, fix config.json');
-        }
-
         this._express = express();
         this._express.set('views', path.join(__dirname, '/views'));
         const pugEngine = this._express.set('view engine', 'pug');
         pugEngine.locals.pretty = true;
 
         this._express.use(cors());
-        this._express.use(morgan('tiny'));
+        if (this._config.morgan && this._config.morgan.disabled !== true) {
+            this._express.use(morgan(this._config.morgan.config || 'tiny'));
+        }
         this._express.use(bodyParser.json());
         this._express.use(bodyParser.urlencoded({ extended: true }) );
 
@@ -83,8 +92,8 @@ export class Server {
             (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => this.errorHandler(err, req, res, next)
         );
 
-        const server = http.createServer(this._express).listen(port, () => {
-            debug.info('Server gestartet: http://localhost:%s', port);
+        const server = http.createServer(this._express).listen(this._config.port, () => {
+            debug.info('Server gestartet: http://localhost:%s', this._config.port);
         });
         server.on('connection', socket => {
             debug.fine('Connection established: %s:%s', socket.remoteAddress, socket.remotePort);
@@ -96,6 +105,7 @@ export class Server {
         server.on('error', err => {
             debug.warn(err);
         });
+        this._server = server;
     }
 
     private errorHandler (err: any, req: express.Request, res: express.Response, next: express.NextFunction) {

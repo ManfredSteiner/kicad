@@ -1,5 +1,5 @@
 
-export const VERSION = '0.7.0';
+export const VERSION = '0.9.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -44,7 +44,7 @@ for (const a in debugConfig) {
 
 // logging with debug-sx/debug
 import * as debugsx from 'debug-sx';
-const debug: debugsx.ISimpleLogger = debugsx.createSimpleLogger('main');
+const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('main');
 
 debugsx.addHandler(debugsx.createConsoleHandler('stdout'));
 const logfileConfig = nconf.get('logfile');
@@ -77,6 +77,7 @@ import { FroniusMeter, IFroniusMeterValues } from './devices/fronius-meter';
 import { FroniusDevice14, IFroniusDevice14Values } from './devices/fronius-device14';
 import { FroniusSymo } from './devices/fronius-symo';
 import { Monitor } from './monitor';
+import { Statistics } from './statistics';
 
 let modbusRtu: ModbusRtu;
 let modbusTcp: ModbusTcp;
@@ -93,6 +94,7 @@ async function doStartup () {
             const gitInfo = await git.getGitInfo();
             startupPrintVersion(gitInfo);
         }
+        await Statistics.createInstance();
         modbusRtu = new ModbusRtu(nconf.get('modbus'));
         modbusTcp = new ModbusTcp(nconf.get('froniusSymo'));
         monitor = Monitor.Instance;
@@ -138,11 +140,24 @@ async function shutdown (src: string): Promise<void> {
         process.exit(1);
     }, shutdownMillis > 0 ? shutdownMillis : 500);
     let rv = 0;
-    try { await modbusRtu.close(); } catch (err) { rv++; console.log(err); }
-    try { await modbusTcp.stop(); } catch (err) { rv++; console.log(err); }
+
+    try { await monitor.stop(); } catch (err) { rv++; console.log(err); }
+    debug.fine('monitor shutdown done');
+
+    try { await Server.Instance.stop(); } catch (err) { rv++; console.log(err); }
+    debug.fine('monitor shutdown done');
+
     try { await froniusSymo.stop(); } catch (err) { rv++; console.log(err); }
-    // await new Promise<void>( (resolve, reject) => { setTimeout(() => { resolve(); }, 2000); } );
+    debug.fine('froniusSymo shutdown done');
+
+    try { await modbusRtu.close(); } catch (err) { rv++; console.log(err); }
+    debug.fine('modbusRtu shutdown done');
+
+    try { await modbusTcp.stop(); } catch (err) { rv++; console.log(err); }
+    debug.fine('modbusTcp shutdown done');
+
     clearTimeout(timer);
+    debug.info('shutdown successfully finished');
     process.exit(rv);
 }
 

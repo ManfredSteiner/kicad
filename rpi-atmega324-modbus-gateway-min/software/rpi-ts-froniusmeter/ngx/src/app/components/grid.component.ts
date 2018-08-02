@@ -50,12 +50,22 @@ export class GridComponent implements OnInit, OnDestroy {
     }
 
     public ngOnInit () {
+        for (let i = 0; i < 60; i++) {
+            for (let j = 0; j < this.barChartData.length; j++) {
+                this.barChartData[j].data.push(null);
+            }
+        }
         const values = this.dataService.getFroniusMeterValues();
         for (const v of values) {
             this.barChartData[0].data.push(v.activePowerL1);
             this.barChartData[1].data.push(v.activePowerL2);
             this.barChartData[2].data.push(v.activePowerL3);
             this.barChartData[3].data.push(v.activePower);
+            if (this.barChartData[0].data.length >  this.barChartLabels.length) {
+                for (let j = 0; j < this.barChartData.length; j++) {
+                    this.barChartData[j].data.splice(0, 1);
+                }
+            }
         }
 
         this._froniusMeterValuesSubsciption =
