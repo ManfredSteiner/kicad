@@ -91,7 +91,11 @@ export class FroniusSymo extends ModbusTcpDevice {
         await this.readStorage();
         await this.readInverterExtension();
         await this.readStringCombiner();
-        await this.readMeter();
+        try {
+            await this.readMeter();
+        } catch (err) {
+            debug.warn('Fronius meter not avaliable, NOTSTROM-Betrieb?');
+        }
         const config = nconf.get('froniusSymo');
     }
 

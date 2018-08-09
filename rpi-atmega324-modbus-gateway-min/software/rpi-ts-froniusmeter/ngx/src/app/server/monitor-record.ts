@@ -199,6 +199,15 @@ export class MonitorRecord {
         return rv;
     }
 
+
+    public get eOut (): number {
+        return this._data.meter ? this._data.meter.totalExportedEnergy : Number.NaN;
+    }
+
+    public get eIn (): number {
+        return this._data.meter ? this._data.meter.totalImportedEnergy : Number.NaN;
+    }
+
     public toHumanReadableObject (): Object {
         const rv = {
             gridActivePower:            this.normaliseUnit(this.gridActivePower, 2, 'W'),
@@ -218,7 +227,9 @@ export class MonitorRecord {
             storageEnergyInPercent:     this.normaliseUnit(this.storageEnergyInPercent, 0, '%'),
             storageVoltage:             this.normaliseUnit(this.storageVoltage, 2, 'V'),
             storageCurrent:             this.normaliseUnit(this.storageCurrent, 2, 'A'),
-            froniusLoadActivePower:     this.normaliseUnit(this.froniusLoadActivePower, 2, 'W')
+            froniusLoadActivePower:     this.normaliseUnit(this.froniusLoadActivePower, 2, 'W'),
+            eIn:                        this.normaliseUnit(this.eIn, 2, 'Wh'),
+            eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh')
         };
         return rv;
     }

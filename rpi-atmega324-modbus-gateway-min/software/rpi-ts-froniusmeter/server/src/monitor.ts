@@ -66,7 +66,6 @@ export class Monitor {
                 this._lastFroniusPoll = new Date();
                 thiz.handleTimerEvent();
                 thiz._timer = setInterval( () => thiz.handleTimerEvent(), this._config.periodMillis);
-                // debug.info('set Interval delayed, now = %d', Date.now());
             }, dt);
         } else {
             this._timer = setInterval( () => this.handleTimerEvent(), this._config.periodMillis);
@@ -119,8 +118,8 @@ export class Monitor {
                         const de = invExt.string1_Power * dt  / 1000 / 3600;
                         this._pvSouthEnergyDaily =
                             invExt.createdAt.getDay() !== oldInvExt.createdAt.getDay() ? de : this._pvSouthEnergyDaily + de;
-                        if (debug.info.enabled) {
-                            debug.info('String 1 (PV-South): P=%sW, dt=%sms, dE=%sWh, E-day=%sWh  E-site-day=%sWh',
+                        if (debug.fine.enabled) {
+                            debug.fine('String 1 (PV-South): P=%sW, dt=%sms, dE=%sWh, E-day=%sWh  E-site-day=%sWh',
                                          sprintf('%7.02f',  invExt.string1_Power), dt,
                                          sprintf('%7.03f', de), 
                                          sprintf('%9.03f', this._pvSouthEnergyDaily),

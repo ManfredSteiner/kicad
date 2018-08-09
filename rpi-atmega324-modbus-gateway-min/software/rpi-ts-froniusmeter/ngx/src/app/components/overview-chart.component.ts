@@ -99,15 +99,25 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         // this.showValues.push({ key: 'string2_P', value: invExt['string2_Power'] });
         // this.showValues.push({ key: 'dcPower', value: inv['dcPower'] });
         if (v) {
-            this.showValues.push({
+            const pv = { key: 'PV', value: '' };
+            const pvS = {
                 key: 'PV-Süd',
-                value: v.data.inverterExtension.string1_Power.toString() + 'W / ' + v.data.froniusRegister.siteEnergyDay + 'Wh'
-            });
+                value: Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' +
+                       Math.round(v.data.calculated.pvSouthEnergyDaily) + 'Wh' +
+                       '(' + Math.round(v.data.froniusRegister.siteEnergyDay) + 'Wh)'
+            };
+            const pvEW = { key: 'PV-Ost/West', value: '' };
+            this.showValues.push(pv);
+            this.showValues.push(pvS);
+            this.showValues.push(pvEW);
+
             if (Array.isArray(v.data.extPvMeter) && v.data.extPvMeter.length === 1) {
-                this.showValues.push({
-                    key: 'PV-Ost/West',
-                    value: v.data.extPvMeter[0].p + 'W / ' + v.data.extPvMeter[0].de1 + 'Wh'
-                });
+                pvEW.value = v.data.extPvMeter[0].p + 'W / ' + v.data.extPvMeter[0].de1 + 'Wh';
+                pv.value = Math.round(v.data.inverterExtension.string1_Power + v.data.extPvMeter[0].p).toString() + 'W / ' +
+                           Math.round(v.data.calculated.pvSouthEnergyDaily + v.data.extPvMeter[0].de1).toString() + 'Wh' ;
+            } else {
+                pv.value = Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' + 
+                Math.round(v.data.calculated.pvSouthEnergyDaily).toString() + 'Wh' ;
             }
             this.showValues.push({
                 key: 'Speicher',

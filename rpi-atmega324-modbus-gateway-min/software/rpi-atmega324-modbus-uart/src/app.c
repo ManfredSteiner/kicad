@@ -124,12 +124,12 @@ void app_task_4ms (void) {
     } else {
         br = 9600;
     }
-    if (brOld != br) {
-        sys.modbus[0].dT1_35 = 70 * F_CPU / 16 / br;
-        sys.modbus[0].dT1_15 = 30 * F_CPU / 16 / br;
-        OCR1A = sys.modbus[0].dT1_35;
-    }
-    UBRR1L = (F_CPU / br + 4)/8 - 1;
+//    if (brOld != br) {
+//        sys.modbus[0].dT1_35 = 70 * F_CPU / 16 / br;
+//        sys.modbus[0].dT1_15 = 30 * F_CPU / 16 / br;
+//        OCR1A = sys.modbus[0].dT1_35;
+//    }
+//    UBRR1L = (F_CPU / br + 4)/8 - 1;
 }
 
 void app_task_8ms (void) {

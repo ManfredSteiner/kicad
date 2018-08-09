@@ -31,13 +31,15 @@ export class Statistics {
         { id: 'p-pv', unit: 'W', label: 'P-PV/W' },
         { id: 'p-pv-s', unit: 'W', label: 'P-PV_Süd/W' },
         { id: 'p-pv-ew', unit: 'W', label: 'P-PV_Ost_West/W' },
-        { id: 'e-pv-daily', unit: 'Wh', label: 'E(tag)-PV/Wh' },
-        { id: 'e-pv-s-daily', unit: 'Wh', label: 'E(tag)-PV_Süd/Wh' },
-        { id: 'e-pv-ew-daily', unit: 'Wh', label: 'E(tag)-PV_Ost_West/Wh' },
-        { id: 'e-pv-s', unit: 'Wh', label: 'E-PV_Süd/Wh' },
-        { id: 'e-pv-ew', unit: 'Wh', label: 'E-PV_Ost_West/Wh' },
-        { id: 'e-site', unit: 'Wh', label: 'E-Fronius-Site/Wh' },
-        { id: 'e-site-daily', unit: 'Wh', label: 'E(tag)-Fronius-Site/Wh' }
+        { id: 'e-pv-daily', unit: 'Wh', label: 'E(tag)-PV/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-pv-s-daily', unit: 'Wh', label: 'E(tag)-PV_Süd/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-pv-ew-daily', unit: 'Wh', label: 'E(tag)-PV_Ost_West/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-out', unit: 'Wh', label: 'E-out/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-in', unit: 'Wh', label: 'E-in/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-pv-s', unit: 'Wh', label: 'E-PV_Süd/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-pv-ew', unit: 'Wh', label: 'E-PV_Ost_West/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-site', unit: 'Wh', label: 'E-Fronius-Site/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-site-daily', unit: 'Wh', label: 'E(tag)-Fronius-Site/Wh', hideMin: true, hideAvg: true }
     ];
 
     public static get Instance (): Statistics {
@@ -194,6 +196,9 @@ export interface IHeaderItem {
     id: string;
     unit?: string;
     isRecordItem?: boolean;
+    hideMin?: boolean;
+    hideAvg?: boolean;
+    hideMax?: boolean;
     label?: string;
 }
 
@@ -297,6 +302,8 @@ class StatisticsRecordFactory extends StatisticsRecord {
                 case 'e-pv-s-daily':    this.handleValue(v, this._valueCount, r.pvSouthEnergyDaily); break;
                 case 'e-pv-ew-daily':   this.handleValue(v, this._valueCount, r.pvEastWestEnergyDaily); break;
                 case 'e-pv-s':          this.handleValue(v, this._valueCount, r.froniusEnergy); break;
+                case 'e-out':           this.handleValue(v, this._valueCount, r.eOut); break;
+                case 'e-in':            this.handleValue(v, this._valueCount, r.eIn); break;
                 case 'e-pv-ew':         this.handleValue(v, this._valueCount, r.pvEastWestEnergy); break;
                 case 'e-site':          this.handleValue(v, this._valueCount, r.froniusEnergy); break;
                 case 'e-site-daily':    this.handleValue(v, this._valueCount, r.froniusEnergyDaily); break;
@@ -308,15 +315,27 @@ class StatisticsRecordFactory extends StatisticsRecord {
 
     public toHeader (): string {
         let s = '';
-        for (let i = 0, first = true; i < this._header.length; i++, first = false) {
+        for (let i = 0, first = true; i < this._header.length; i++) {
             const h = this._header[i];
-            s = s + (first ? '' : ',');
             if (h.isRecordItem) {
-                s += '"' + h.label + '"';
+                s = s + (first ? '' : ',');
+                s += '"' + h.label + '"'; first = false;
             } else {
-                s += '"MIN(' + h.label + ')"';
-                s += ',"AVG(' + h.label + ')"';
-                s += ',"MAX(' + h.label + ')"';
+                if (!h.hideMin) {
+                    s = s + (first ? '' : ',');
+                    s += '"MIN(' + h.label + ')"';
+                    first = false;
+                }
+                if (!h.hideAvg) {
+                    s = s + (first ? '' : ',');
+                    s += '"AVG(' + h.label + ')"';
+                    first = false;
+                }
+                if (!h.hideMax) {
+                    s = s + (first ? '' : ',');
+                    s += '"MAX(' + h.label + ')"';
+                    first = false;
+                }
             }
         }
         return s;
@@ -360,27 +379,27 @@ class StatisticsRecordFactory extends StatisticsRecord {
                         break;
                     }
                     case 'p-grid': case 'p-storage': case 'p-load': {
-                        s += sprintf('"%f","%f","%f"', Math.round(v.min), Math.round(v.avg), Math.round(v.max)).replace(/\./g, ',');
+                        s += this.formatLineFragment(h, 0, v);
                         break;
                     }
                     case 'storage-percent': {
-                        s += sprintf('"%f","%f","%f"', Math.round(v.min), Math.round(v.avg), Math.round(v.max)).replace(/\./g, ',');
+                        s += this.formatLineFragment(h, 0, v);
                         break;
                     }
                     case 'p-pv': case 'p-pv-s': case 'p-pv-ew': {
-                        s += sprintf('"%f","%f","%f"', Math.round(v.min), Math.round(v.avg), Math.round(v.max)).replace(/\./g, ',');
+                        s += this.formatLineFragment(h, 0, v);
                         break;
                     }
                     case 'e-pv-daily': case 'e-pv-s-daily': case 'e-pv-ew-daily': {
-                        s += sprintf('"%f","%f","%f"',
-                            Math.round(v.min * 10) / 10,
-                            Math.round(v.avg * 10) / 10,
-                            Math.round(v.max * 10) / 10
-                        ).replace(/\./g, ',');
+                        s += this.formatLineFragment(h, 1, v);
                         break;
                     }
                     case 'e-pv': case 'e-pv-s': case 'e-pv-ew': case 'e-site': case 'e-site-daily': {
-                        s += sprintf('"%f","%f","%f"', Math.round(v.min), Math.round(v.avg), Math.round(v.max)).replace(/\./g, ',');
+                        s += this.formatLineFragment(h, 0, v);
+                        break;
+                    }
+                    case 'e-out': case 'e-in': {
+                        s += this.formatLineFragment(h, 1, v);
                         break;
                     }
                     default: debug.warn('unsupported id %s', h.id); break;
@@ -389,6 +408,26 @@ class StatisticsRecordFactory extends StatisticsRecord {
 
         }
         return s;
+    }
+
+    private formatLineFragment (h: IHeaderItem, digits: number, values: IValue): string {
+        let s = '';
+        let k = 1;
+        while (digits-- > 0) {
+            k *= 10;
+        }
+        if (!h.hideMin) {
+            s += values.min ? sprintf('"%f"', Math.round(values.min * k) / k) : '""';
+        }
+        if (!h.hideAvg) {
+            if (s) { s += ','; }
+            s += values.avg ? sprintf('"%f"', Math.round(values.avg * k) / k) : '""';
+        }
+        if (!h.hideMax) {
+            if (s) { s += ','; }
+            s += values.max ? sprintf('"%f"', Math.round(values.max * k) / k) : '""';
+        }
+        return s.replace(/\./g, ',');
     }
 
     private handleValue (v: IValue, cnt: number, x: number) {
