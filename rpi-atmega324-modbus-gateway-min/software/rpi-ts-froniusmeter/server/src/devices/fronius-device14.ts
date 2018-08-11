@@ -1,7 +1,8 @@
 
 import { ModbusDevice } from './modbus-device';
-import { ModbusRtuDevice } from './modbus-rtu-device';
-import { ModbusRTUFrame } from '../modbus/modbus-rtu-frame';
+import { ModbusSerialDevice } from './modbus-serial-device';
+import { ModbusSerial } from '../modbus/modbus-serial';
+import { ModbusFrame } from '../modbus/modbus-frame';
 import { sprintf } from 'sprintf-js';
 import { EventEmitter } from 'events';
 
@@ -16,7 +17,7 @@ export interface IFroniusDevice14Values {
 
 
 
-export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14Values {
+export class FroniusDevice14 extends ModbusSerialDevice implements IFroniusDevice14Values {
 
     public static FIRST_HOLDREG_ADDRESS = 0xafcc;
 
@@ -34,7 +35,7 @@ export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14
 
     private _lastRegs: number [];
 
-    public constructor (serial: ModbusRtu, address: number) {
+    public constructor (serial: ModbusSerial, address: number) {
         super(serial, address);
         this._regs = Array(154).fill(-1);
         this._eventEmitter = new EventEmitter();
@@ -51,16 +52,16 @@ export class FroniusDevice14 extends ModbusRtuDevice implements IFroniusDevice14
     }
 
 
-    public handleResponse (requ: ModbusRTUFrame, resp: ModbusRTUFrame) {
+    public handleResponse (requ: ModbusFrame, resp: ModbusFrame) {
         let err: Error;
-        if (!requ || !requ.ok || !requ.crcOk || requ.address !== this.address) {
+        if (!requ || !requ.ok || !requ.checkSumOk || requ.address !== this.address) {
             err = new Error('invalid request, cannot handle response');
-        } else if (!resp || !resp.ok || !resp.crcOk || resp.address !== this.address || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
+        } else if (!resp || !resp.ok || !resp.checkSumOk || resp.address !== this.address || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
             err = new Error('invalid response');
         }
         switch (resp.funcCode) {
             case 0x03: {
-                    const l = resp.buffer.length - 5;
+                    const l = resp.buffer.length - 3;
                     if (l !== requ.wordAt(4) * 2) {
                         err = new Error('invalid response, wrong number of registers');
                     } else {

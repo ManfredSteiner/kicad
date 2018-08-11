@@ -201,11 +201,11 @@ export class MonitorRecord {
 
 
     public get eOut (): number {
-        return this._data.meter ? this._data.meter.totalExportedEnergy : Number.NaN;
+        return this._data.gridmeter ? this._data.gridmeter.activeFeedEnergy : Number.NaN;
     }
 
     public get eIn (): number {
-        return this._data.meter ? this._data.meter.totalImportedEnergy : Number.NaN;
+        return this._data.gridmeter ? this._data.gridmeter.activeEnergy : Number.NaN;
     }
 
     public toHumanReadableObject (): Object {

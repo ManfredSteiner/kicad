@@ -2,6 +2,8 @@
 import * as debugsx from 'debug-sx';
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('monitor');
 
+import * as fs from 'fs';
+
 import * as nconf from 'nconf';
 import { sprintf } from 'sprintf-js';
 
@@ -9,7 +11,6 @@ import { FroniusMeter } from './devices/fronius-meter';
 import { FroniusSymo } from './devices/fronius-symo';
 import { PiTechnik } from './devices/pi-technik';
 import { MonitorRecord, IMonitorRecordData, ICalculated } from './client/monitor-record';
-import { IMeter } from './client/fronius-symo-values';
 import { ISaiaAle3Meter } from './client/saia-ale3-meter';
 import { Statistics } from './statistics';
 
@@ -18,7 +19,15 @@ interface IMonitorConfig {
     periodMillis?:        number;
     timeOffset?:          { sec: number, ms: number };
     froniusPeriodMillis?: number;
+    tempFile?:            { path: string; backups?: number };
 }
+
+interface ITempFileRecord {
+    createdAt: Date;
+    pvSouthEnergyDaily: number;
+    monitorRecord: any;
+}
+
 
 export class Monitor {
     private static _instance: Monitor;
@@ -39,9 +48,11 @@ export class Monitor {
     private _lastFroniusPoll: Date;
     private _lastCaclulated: ICalculated;
     private _pvSouthEnergyDaily = 0;
+    private _lastTempCnt = 0;
 
     private constructor () {
-        this._config = nconf.get('monitor') || { enabled: false };
+        const cfg: IMonitorConfig = nconf.get('monitor');
+        this._config = cfg || { disabled: true };
         if (!this._config.periodMillis) { this._config.periodMillis = 1000; }
         if (!this._config.froniusPeriodMillis) { this._config.froniusPeriodMillis = 1000; }
         this._lastFroniusPoll = null;
@@ -50,6 +61,37 @@ export class Monitor {
 
     public async start () {
         if (this._config.disabled) { return; }
+
+        if (this._config.tempFile && this._config.tempFile.path) {
+            debugger;
+            const backups = this._config.tempFile.backups > 0 ? this._config.tempFile.backups : 1;
+            let found: ITempFileRecord;
+            const now = new Date();
+            for (let i = 0; i < backups; i++) {
+                const fn = this._config.tempFile.path + '.' + i;
+                if (!fs.existsSync(fn)) { continue; }
+                try {
+                    const s = fs.readFileSync(fn).toString('utf-8');
+                    const o: ITempFileRecord = <ITempFileRecord>JSON.parse(s);
+                    if (o.pvSouthEnergyDaily >= 0) {
+                        o.createdAt = new Date(o.createdAt);
+                        if (!found || found.createdAt < o.createdAt) {
+                            if (now.toDateString() === o.createdAt.toDateString()) {
+                                found = o;
+                            }
+                        }
+                    }
+                } catch (err) {
+                }
+            }
+            if (!found) {
+                debug.warn('cannot find temporary file...');
+            } else {
+                debug.warn('temporary file found, set pvSouthEnergyDaily to ' + found.pvSouthEnergyDaily);
+                this._pvSouthEnergyDaily = found.pvSouthEnergyDaily;
+            }
+        }
+
         this._symo = FroniusSymo.getInstance(1);
         if (this._config.timeOffset instanceof Object && this._config.timeOffset.sec > 0 && this._config.timeOffset.ms >= 0) {
             const sec = Math.round(this._config.timeOffset.sec);
@@ -121,7 +163,7 @@ export class Monitor {
                         if (debug.fine.enabled) {
                             debug.fine('String 1 (PV-South): P=%sW, dt=%sms, dE=%sWh, E-day=%sWh  E-site-day=%sWh',
                                          sprintf('%7.02f',  invExt.string1_Power), dt,
-                                         sprintf('%7.03f', de), 
+                                         sprintf('%7.03f', de),
                                          sprintf('%9.03f', this._pvSouthEnergyDaily),
                                          sprintf('%8.01f',  froReg.siteEnergyDay)
                                       );
@@ -176,9 +218,6 @@ export class Monitor {
                 }
             }
 
-                       // saiaDe1Offset: number;
-        // froniusSiteDailyOffset: number;
-
             const d = FroniusMeter.getInstance(1);
             const fm = d instanceof FroniusMeter ? d.toValuesObject() : null;
             let saiaMeter: ISaiaAle3Meter;
@@ -230,9 +269,39 @@ export class Monitor {
             }
             Statistics.Instance.handleMonitorRecord(r);
             debug.fine('%O', r.toHumanReadableObject());
+            this.saveTemp(r);
 
         } catch (err) {
             debug.warn(err);
         }
     }
+
+    private saveTemp (r: MonitorRecord) {
+        if (!this._config.tempFile || !this._config.tempFile.path) {
+            return;
+        }
+        try {
+            const t: ITempFileRecord = {
+                createdAt: new Date(),
+                pvSouthEnergyDaily: Math.round(this._pvSouthEnergyDaily * 100) / 100,
+                monitorRecord: r.toHumanReadableObject()
+            };
+            const tOut = JSON.stringify(t, null, 2) + '\n';
+            const backups = this._config.tempFile.backups > 0 ? this._config.tempFile.backups : 1;
+            const index = (this._lastTempCnt + 1) % backups;
+            this._lastTempCnt = index;
+            const fn = this._config.tempFile.path + '.' + index;
+            fs.writeFile(fn, tOut, { encoding: 'utf-8' }, (err) => {
+                if (err) {
+                    debug.warn('tempFile error\n%e', err);
+                } else if (debug.fine.enabled) {
+                    debug.fine('temp file ' + fn + 'written');
+                }
+            } );
+
+        } catch (err) {
+            debug.warn('tempFile error\n%e', err);
+        }
+    }
+
 }

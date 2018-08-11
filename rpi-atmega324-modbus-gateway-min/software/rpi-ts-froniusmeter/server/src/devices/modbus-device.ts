@@ -1,9 +1,11 @@
-import { ModbusRTUFrame } from '../modbus/modbus-rtu-frame';
-import { sprintf } from 'sprintf-js';
-import { EventEmitter } from 'events';
 
 import * as debugsx from 'debug-sx';
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:ModbusDevice');
+
+import { sprintf } from 'sprintf-js';
+import { EventEmitter } from 'events';
+import { ModbusFrame } from '../modbus//modbus-frame';
+
 
 export abstract class ModbusDevice  {
 
@@ -52,7 +54,9 @@ export abstract class ModbusDevice  {
         return this._address;
     }
 
-    public handleResponse (requ: ModbusRTUFrame, resp: ModbusRTUFrame) {
+    public handleResponse (requ: ModbusFrame, resp: ModbusFrame) {
         debug.warn('handleResponse() not implemented');
     }
 }
+
+

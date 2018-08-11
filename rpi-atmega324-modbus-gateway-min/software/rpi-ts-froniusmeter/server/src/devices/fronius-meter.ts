@@ -1,13 +1,16 @@
 
-import { ModbusDevice } from './modbus-device';
-import { ModbusRtu } from '../modbus/modbus-rtu';
-import { ModbusRtuDevice } from '../devices/modbus-rtu-device';
-import { ModbusRTUFrame } from '../modbus/modbus-rtu-frame';
-import { sprintf } from 'sprintf-js';
-import { EventEmitter } from 'events';
-
 import * as debugsx from 'debug-sx';
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:FroniusMeter');
+
+import { EventEmitter } from 'events';
+
+import { sprintf } from 'sprintf-js';
+
+import { ModbusDevice } from './modbus-device';
+import { ModbusSerial } from '../modbus/modbus-serial';
+import { ModbusSerialDevice } from '../devices/modbus-serial-device';
+import { ModbusFrame } from '../modbus/modbus-frame';
+
 
 export interface IFroniusMeterValues {
     lastUpdateAt: Date;           // Zeitpunkt der gemessenen Werte
@@ -46,7 +49,7 @@ export interface IFroniusMeterValues {
 }
 
 
-export class FroniusMeter extends ModbusRtuDevice implements IFroniusMeterValues {
+export class FroniusMeter extends ModbusSerialDevice implements IFroniusMeterValues {
 
     public static getInstance (id: string | number): FroniusMeter {
         id = id.toString();
@@ -65,7 +68,7 @@ export class FroniusMeter extends ModbusRtuDevice implements IFroniusMeterValues
     private _lastRegs43: number;
     private _eventEmitter: EventEmitter;
 
-    public constructor (serial: ModbusRtu, address: number) {
+    public constructor (serial: ModbusSerial, address: number) {
         super(serial, address);
         this._regs = Array(59).fill(-1);
         this._eventEmitter = new EventEmitter();
@@ -82,16 +85,16 @@ export class FroniusMeter extends ModbusRtuDevice implements IFroniusMeterValues
     }
 
 
-    public handleResponse (requ: ModbusRTUFrame, resp: ModbusRTUFrame) {
+    public handleResponse (requ: ModbusFrame, resp: ModbusFrame) {
         let err: Error;
-        if (!requ || !requ.ok || !requ.crcOk || requ.address !== this.address) {
+        if (!requ || !requ.ok || !requ.checkSumOk || requ.address !== this.address) {
             err = new Error('invalid request, cannot handle response');
-        } else if (!resp || !resp.ok || !resp.crcOk || resp.address !== this.address || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
+        } else if (!resp || !resp.ok || !resp.checkSumOk || resp.address !== this.address || (resp.byteAt(2) !== (requ.wordAt(4) * 2))) {
             err = new Error('invalid response');
         }
         switch (resp.funcCode) {
             case 0x03: {
-                    const l = resp.buffer.length - 5;
+                    const l = resp.buffer.length - 3;
                     if (l !== 118) {
                         err = new Error('invalid response, wrong number of registers');
                     } else {

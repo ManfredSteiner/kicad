@@ -1,5 +1,5 @@
 
-export const VERSION = '0.11.0';
+export const VERSION = '0.12.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -65,13 +65,11 @@ if (logfileConfig) {
 //   ... things to do before server can be started
 // ***********************************************************
 
-import * as SerialPort from 'serialport';
 import { sprintf } from 'sprintf-js';
-// import { ModbusCrc } from './modbus/modbus-crc';
 import { Server } from './server';
 import { PiTechnik } from './devices/pi-technik';
 import { ModbusDevice } from './devices/modbus-device';
-import { ModbusRtu } from './modbus/modbus-rtu';
+import { ModbusAscii } from './modbus/modbus-ascii';
 import { ModbusTcp } from './modbus/modbus-tcp';
 import { FroniusMeter, IFroniusMeterValues } from './devices/fronius-meter';
 import { FroniusDevice14, IFroniusDevice14Values } from './devices/fronius-device14';
@@ -79,7 +77,8 @@ import { FroniusSymo } from './devices/fronius-symo';
 import { Monitor } from './monitor';
 import { Statistics } from './statistics';
 
-let modbusRtu: ModbusRtu;
+// let modbusRtu: ModbusRtu;
+let modbusSerial: ModbusAscii;
 let modbusTcp: ModbusTcp;
 let froniusSymo: FroniusSymo;
 let piTechnik: PiTechnik;
@@ -95,15 +94,15 @@ async function doStartup () {
             startupPrintVersion(gitInfo);
         }
         await Statistics.createInstance();
-        modbusRtu = new ModbusRtu(nconf.get('modbus'));
+        modbusSerial = new ModbusAscii(nconf.get('modbus'));
         modbusTcp = new ModbusTcp(nconf.get('froniusSymo'));
         monitor = Monitor.Instance;
         piTechnik = await PiTechnik.initInstance(nconf.get('pi-technik'));
 
-        const fm = new FroniusMeter(modbusRtu, 1);
+        const fm = new FroniusMeter(modbusSerial, 1);
         fm.on('update', appendToHistoryFile);
         ModbusDevice.addInstance(fm);
-        ModbusDevice.addInstance(new FroniusDevice14(modbusRtu, 0x14));
+        ModbusDevice.addInstance(new FroniusDevice14(modbusSerial, 0x14));
 
         await startupParallel();
         await startupServer();
@@ -150,7 +149,7 @@ async function shutdown (src: string): Promise<void> {
     try { await froniusSymo.stop(); } catch (err) { rv++; console.log(err); }
     debug.fine('froniusSymo shutdown done');
 
-    try { await modbusRtu.close(); } catch (err) { rv++; console.log(err); }
+    try { await modbusSerial.close(); } catch (err) { rv++; console.log(err); }
     debug.fine('modbusRtu shutdown done');
 
     try { await modbusTcp.stop(); } catch (err) { rv++; console.log(err); }
@@ -171,7 +170,7 @@ function startupPrintVersion (info?: git.GitInfo) {
 }
 
 async function startupParallel (): Promise<any []> {
-    const rv: Promise<any> [] = [ modbusRtu.open(), modbusTcp.start() ];
+    const rv: Promise<any> [] = [ modbusSerial.open(), modbusTcp.start() ];
     for (const p of rv) {
         await p;
     }

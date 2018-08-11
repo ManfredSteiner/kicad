@@ -1,14 +1,14 @@
 
-import { sprintf } from 'sprintf-js';
-import { ModbusCrc } from './modbus-crc';
-
 import * as debugsx from 'debug-sx';
 const debug: debugsx.ISimpleLogger = debugsx.createSimpleLogger('modbus:ModbusFrame');
 
+import { sprintf } from 'sprintf-js';
+import { ModbusCrc } from './modbus-crc';
+import { ModbusFrame } from './modbus-frame';
 
-export class ModbusRTUFrame {
+export class ModbusRTUFrame implements ModbusFrame {
 
-    private _at: Date;
+    private _createdAt: Date;
     private _frame?: string;
     private _buffer: Buffer;
     private _frameErrorCount: number;
@@ -16,7 +16,7 @@ export class ModbusRTUFrame {
     private _error: Error;
 
     public constructor (frame?: string, length?: number) {
-        this._at = new Date();
+        this._createdAt = new Date();
         this._frame = frame;
         if (typeof(frame) !== 'string') {
             this._error = new Error('invalid frame type');
@@ -42,6 +42,10 @@ export class ModbusRTUFrame {
 
     }
 
+    public get createdAt (): Date {
+        return this._createdAt;
+    }
+
     public get frame (): string {
         return this._frame;
     }
@@ -56,6 +60,10 @@ export class ModbusRTUFrame {
 
     public get error (): Error {
         return this._error;
+    }
+
+    public get checkSumOk (): boolean {
+        return this.crcOk;
     }
 
     public get crcOk (): boolean {
@@ -74,6 +82,14 @@ export class ModbusRTUFrame {
             throw new Error('cannot get function code from invalid frame');
         }
         return this._buffer[1];
+    }
+
+    public get excCode (): number {
+        if (this.funcCode < 128) {
+            return Number.NaN;
+        } else {
+            return this._buffer[2];
+        }
     }
 
     public byteAt (index: number): number {
