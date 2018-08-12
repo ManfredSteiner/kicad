@@ -87,7 +87,7 @@ export class Monitor {
             if (!found) {
                 debug.warn('cannot find temporary file...');
             } else {
-                debug.warn('temporary file found, set pvSouthEnergyDaily to ' + found.pvSouthEnergyDaily);
+                debug.info('temporary file found, set pvSouthEnergyDaily to ' + found.pvSouthEnergyDaily);
                 this._pvSouthEnergyDaily = found.pvSouthEnergyDaily;
             }
         }

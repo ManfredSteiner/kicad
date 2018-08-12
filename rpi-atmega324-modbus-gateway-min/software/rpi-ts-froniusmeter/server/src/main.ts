@@ -1,5 +1,5 @@
 
-export const VERSION = '0.12.0';
+export const VERSION = '0.12.2';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';

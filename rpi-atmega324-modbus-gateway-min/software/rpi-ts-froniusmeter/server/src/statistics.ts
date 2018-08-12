@@ -417,15 +417,15 @@ class StatisticsRecordFactory extends StatisticsRecord {
             k *= 10;
         }
         if (!h.hideMin) {
-            s += values.min ? sprintf('"%f"', Math.round(values.min * k) / k) : '""';
+            s += typeof values.min === 'number' ? sprintf('"%f"', Math.round(values.min * k) / k) : '""';
         }
         if (!h.hideAvg) {
             if (s) { s += ','; }
-            s += values.avg ? sprintf('"%f"', Math.round(values.avg * k) / k) : '""';
+            s += typeof values.avg === 'number' ? sprintf('"%f"', Math.round(values.avg * k) / k) : '""';
         }
         if (!h.hideMax) {
             if (s) { s += ','; }
-            s += values.max ? sprintf('"%f"', Math.round(values.max * k) / k) : '""';
+            s += typeof values.max === 'number' ? sprintf('"%f"', Math.round(values.max * k) / k) : '""';
         }
         return s.replace(/\./g, ',');
     }
