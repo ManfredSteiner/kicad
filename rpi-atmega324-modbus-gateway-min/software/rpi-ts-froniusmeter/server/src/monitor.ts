@@ -10,9 +10,11 @@ import { sprintf } from 'sprintf-js';
 import { FroniusMeter } from './devices/fronius-meter';
 import { FroniusSymo } from './devices/fronius-symo';
 import { PiTechnik } from './devices/pi-technik';
+import { Nibe1155 } from './devices/nibe1155';
 import { MonitorRecord, IMonitorRecordData, ICalculated } from './client/monitor-record';
 import { ISaiaAle3Meter } from './client/saia-ale3-meter';
 import { Statistics } from './statistics';
+import { INibe1155Values } from './client/nibe1155-values';
 
 interface IMonitorConfig {
     disabled?:            boolean;
@@ -63,7 +65,6 @@ export class Monitor {
         if (this._config.disabled) { return; }
 
         if (this._config.tempFile && this._config.tempFile.path) {
-            debugger;
             const backups = this._config.tempFile.backups > 0 ? this._config.tempFile.backups : 1;
             let found: ITempFileRecord;
             const now = new Date();
@@ -229,6 +230,7 @@ export class Monitor {
                 saiaMeter = rv[0];
             }
 
+
             const x: IMonitorRecordData = {
                 froniusRegister: this._symo.froniusRegister,
                 inverter: this._symo.inverter,
@@ -261,6 +263,16 @@ export class Monitor {
             }
             if (saiaMeter) {
                 x.extPvMeter.push(saiaMeter);
+            }
+            const nibe = Nibe1155.Instance;
+            if (nibe) {
+                x.heating = {
+                    brinePumpPower:      nibe.brinePumpPower,
+                    supplyPumpPower:     nibe.supplyPumpPower,
+                    compressorPower:     nibe.compressorPower,
+                    electricHeaterPower: nibe.electricHeaterPower,
+                    compressorFrequency: nibe.compressorFrequency
+                };
             }
             const r = MonitorRecord.create(x);
             this._history.push(r);

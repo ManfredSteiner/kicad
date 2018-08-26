@@ -1,5 +1,5 @@
 
-export const VERSION = '0.12.2';
+export const VERSION = '0.13.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -68,6 +68,7 @@ if (logfileConfig) {
 import { sprintf } from 'sprintf-js';
 import { Server } from './server';
 import { PiTechnik } from './devices/pi-technik';
+import { Nibe1155 } from './devices/nibe1155';
 import { ModbusDevice } from './devices/modbus-device';
 import { ModbusAscii } from './modbus/modbus-ascii';
 import { ModbusTcp } from './modbus/modbus-tcp';
@@ -82,6 +83,7 @@ let modbusSerial: ModbusAscii;
 let modbusTcp: ModbusTcp;
 let froniusSymo: FroniusSymo;
 let piTechnik: PiTechnik;
+let nibe1155: Nibe1155;
 let monitor: Monitor;
 
 doStartup();
@@ -98,6 +100,7 @@ async function doStartup () {
         modbusTcp = new ModbusTcp(nconf.get('froniusSymo'));
         monitor = Monitor.Instance;
         piTechnik = await PiTechnik.initInstance(nconf.get('pi-technik'));
+        nibe1155 = await Nibe1155.initInstance(nconf.get('nibe1155'));
 
         const fm = new FroniusMeter(modbusSerial, 1);
         fm.on('update', appendToHistoryFile);
@@ -106,6 +109,7 @@ async function doStartup () {
 
         await startupParallel();
         await startupServer();
+        await nibe1155.start();
         await monitor.start();
         doSomeTests();
         process.on('SIGINT', () => {

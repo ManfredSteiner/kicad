@@ -6,6 +6,7 @@ import { Observable, Subscriber, TeardownLogic, of } from 'rxjs';
 import { IFroniusMeterValues } from '../server/fronius-meter-values';
 import { IMonitorRecordData, MonitorRecord } from '../server/monitor-record';
 import * as froniusSymo from '../server/fronius-symo-values';
+import * as nibe1155 from '../server/nibe1155-values';
 
 
 @Injectable({ providedIn: 'root' })
@@ -28,7 +29,7 @@ export class DataService {
 
 
     constructor (private http: HttpClient) {
-        this._serverUri = isDevMode() ? 'http://rpi:8080' : '';
+        this._serverUri = isDevMode() ? 'http://192.168.1.201:80' : '';
         this.froniusMeterObservable = new Observable((s) => this.froniusMeterSubscriber(s));
         this.monitorObservable = new Observable((s) => this.monitorSubscriber(s));
     }
@@ -59,6 +60,27 @@ export class DataService {
             first = false;
         }
         return this.http.get<froniusSymo.IFroniusSymoValues>(uri);
+    }
+
+    public getNibe1155Values ( query?: {
+                                controller?: boolean;
+                                completeValues?: boolean;
+                                ids?: number [];
+                            }): Observable<nibe1155.INibe1155Values> {
+        let uri = this._serverUri + '/data/nibe1155';
+        query = query || {};
+        uri += '?' + (query.completeValues ? 'completeValues=true&simpleValues=false' :
+                                                  'completeValues=false&simpleValues=true');
+        uri += '&controller=' + (query.controller ? 'true' : 'false');
+        if (Array.isArray(query.ids)) {
+            for (const id of query.ids) {
+                if (id >= 0 && id <= 0xffff) {
+                    uri += '&id=' + id;
+                }
+            }
+        }
+        console.log(uri);
+        return this.http.get<nibe1155.INibe1155Values>(uri);
     }
 
 

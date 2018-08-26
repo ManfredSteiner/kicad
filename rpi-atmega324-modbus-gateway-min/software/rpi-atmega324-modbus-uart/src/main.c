@@ -33,6 +33,8 @@ const char MAIN_HELP[] = "\r\n  press s for status, m to enable/disable montor\r
 
 
 int main (void) {
+    PSTR(p) = MAIN_WELCOME;
+
     sys_init();
     
     app_init();

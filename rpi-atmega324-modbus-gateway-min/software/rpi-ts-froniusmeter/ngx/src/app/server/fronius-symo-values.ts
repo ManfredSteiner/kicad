@@ -697,17 +697,61 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     public get numberOfModules (): number { return this._regs.r09_N; }
     public get string1_Id (): number { return this._regs.r11_1_ID; }
     public get string1_Name (): string { return this._regs.r12_1_IDStr; }
-    public get string1_Current (): number { return this.scale(this._regs.r20_1_DCA, this._regs.r03_DCA_SF); }
-    public get string1_Voltage (): number { return this.scale(this._regs.r21_1_DCV, this._regs.r04_DCV_SF); }
-    public get string1_Power (): number { return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF); }
+
+    public get string1_Current (): number {
+        if (this._regs.r28_1_DCst === 65535 && this._regs.r20_1_DCA === 65535) {
+            return 0;
+        } else {
+            return this.scale(this._regs.r20_1_DCA, this._regs.r03_DCA_SF);
+        }
+    }
+
+    public get string1_Voltage (): number {
+        if (this._regs.r28_1_DCst === 65535 && this._regs.r21_1_DCV === 65535) {
+            return 0;
+        } else {
+           return this.scale(this._regs.r21_1_DCV, this._regs.r04_DCV_SF);
+        }
+    }
+
+    public get string1_Power (): number {
+        if (this._regs.r28_1_DCst === 65535 && this._regs.r22_1_DCW === 65535) {
+            return 0;
+        } else {
+            return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF);
+        }
+    }
+
     public get string1_LifetimeEnergy (): number { return this.scale(this._regs.r23_1_DCWH, this._regs.r06_DCWH_SF); }
     public get string1_Temperature (): number { return this._regs.r27_1_Tmp; }
     public get string1_operatingState (): string { return this.stringOperatingState(this._regs.r28_1_DCst); }
     public get string2_Id (): number { return this._regs.r31_2_ID; }
     public get string2_Name (): string { return this._regs.r32_2_IDStr; }
-    public get string2_Current (): number { return this.scale(this._regs.r40_2_DCA, this._regs.r03_DCA_SF); }
-    public get string2_Voltage (): number { return this.scale(this._regs.r41_2_DCV, this._regs.r04_DCV_SF); }
-    public get string2_Power (): number { return this.scale(this._regs.r42_2_DCW, this._regs.r05_DCW_SF); }
+
+    public get string2_Current (): number {
+        if (this._regs.r48_2_DCst === 65535 && this._regs.r40_2_DCA === 65535) {
+            return 0;
+        } else {
+            return this.scale(this._regs.r40_2_DCA, this._regs.r03_DCA_SF);
+        }
+    }
+
+    public get string2_Voltage (): number {
+        if (this._regs.r48_2_DCst === 65535 && this._regs.r41_2_DCV === 65535) {
+            return 0;
+        } else {
+            return this.scale(this._regs.r41_2_DCV, this._regs.r04_DCV_SF);
+        }
+    }
+
+    public get string2_Power (): number {
+        if (this._regs.r48_2_DCst === 65535 && this._regs.r42_2_DCW === 65535) {
+            return 0;
+        } else {
+            return this.scale(this._regs.r42_2_DCW, this._regs.r05_DCW_SF);
+        }
+    }
+
     public get string2_LifetimeEnergy (): number { return this.scale(this._regs.r43_2_DCWH, this._regs.r06_DCWH_SF); }
     public get string2_Temperature (): number { return this._regs.r47_2_Tmp; }
     public get string2_operatingState (): string { return this.stringOperatingState(this._regs.r48_2_DCst); }
@@ -751,6 +795,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     }
 
     private stringOperatingState (reg: number): string {
+        console.log('stringOperatingState', reg);
         switch (reg) {
             case 1: return 'OFF';
             case 2: return 'IN OPERATION';
@@ -760,7 +805,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
             case 6: return 'SWITCH-OFF PHASE';
             case 7: return 'ERROR EXISTS';
             case 8: return 'STANDBY';
-            default: return '?';
+            default: return '? (' + reg + ')';
         }
     }
 }

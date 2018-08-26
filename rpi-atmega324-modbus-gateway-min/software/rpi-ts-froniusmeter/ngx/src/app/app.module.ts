@@ -13,6 +13,7 @@ import { OverviewComponent } from './components/overview.component';
 import { OverviewChartComponent } from './components/overview-chart.component';
 import { FroniusmeterComponent } from './components/froniusmeter.component';
 import { FroniusSymoComponent } from './components/fronius-symo.component';
+import { Nibe1155Component } from './components/nibe1155.component';
 
 import { ChartsModule } from 'ng4-charts/ng4-charts';
 import { AccordionModule, AlertModule, CollapseModule } from 'ngx-bootstrap';
@@ -24,7 +25,8 @@ const appRoutes: Routes = [
     { path: 'app/grid', component: GridComponent },
     { path: 'app/overview', component: OverviewComponent },
     { path: 'app/froniusmeter', component: FroniusmeterComponent },
-    { path: 'app/froniussymo', component: FroniusSymoComponent }
+    { path: 'app/froniussymo', component: FroniusSymoComponent },
+    { path: 'app/nibe1155', component: Nibe1155Component }
 ];
 
 @NgModule({
@@ -35,7 +37,8 @@ const appRoutes: Routes = [
         GridComponent,
         OverviewComponent, OverviewChartComponent,
         FroniusmeterComponent,
-        FroniusSymoComponent
+        FroniusSymoComponent,
+        Nibe1155Component
     ],
     imports: [
         BrowserModule,

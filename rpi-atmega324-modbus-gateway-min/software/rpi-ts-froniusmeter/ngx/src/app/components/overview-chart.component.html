@@ -15,6 +15,7 @@
         <span style="margin-right:2em" *ngFor="let x of showValues">
             <strong>{{x.key}}:</strong>
             <span style="margin-left: 0.5em">{{x.value}}</span>
+            <br *ngIf="x.br"/>
         </span>
     </div>
 </div>

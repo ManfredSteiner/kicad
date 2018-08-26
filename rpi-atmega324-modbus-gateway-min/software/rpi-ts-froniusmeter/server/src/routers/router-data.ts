@@ -13,6 +13,8 @@ import { Monitor } from '../monitor';
 
 import * as debugsx from 'debug-sx';
 import { FroniusSymo } from '../devices/fronius-symo';
+import { Nibe1155 } from '../devices/nibe1155';
+import { INibe1155Values, Nibe1155Value } from '../client/nibe1155-values';
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('routers:RouterData');
 
 export class RouterData {
@@ -35,6 +37,7 @@ export class RouterData {
         this._router.get('/froniusmeter', (req, res, next) => this.getFroniusMeterJson(req, res, next));
         this._router.get('/froniussymo', (req, res, next) => this.getFroniusSymoJson(req, res, next));
         this._router.get('/monitor', (req, res, next) => this.getMonitorJson(req, res, next));
+        this._router.get('/nibe1155', (req, res, next) => this.getNibe1155Json(req, res, next));
         // this._router.get('/*', (req, res, next) => this.getAll(req, res, next));
 
     }
@@ -203,5 +206,51 @@ export class RouterData {
             handleError(err, req, res, next, debug);
         }
     }
+
+    private async getNibe1155Json (req: express.Request, res: express.Response, next: express.NextFunction) {
+        try {
+            const nibe = Nibe1155.Instance;
+            const ids: number [] = [];
+            if (req.query.id !== undefined) {
+                const strIds: string [] = Array.isArray(req.query.id) ? req.query.id : [ req.query.id ];
+                for (const strId of strIds) {
+                    const id = +strId;
+                    if (id < 0 || id > 0xffff) {
+                        throw new BadRequestError('invalid id');
+                    }
+                    ids.push(id);
+                }
+            }
+            const rv: INibe1155Values = {
+                controller: req.query.controller && req.query.controller === 'false' ? undefined : nibe.controller,
+                // monitor: statistics.latest.toObject(),
+                // others: {}
+                simpleValues: req.query.simpleValues && req.query.simpleValues === 'false' ? undefined : {},
+                completeValues: req.query.completeValues && req.query.completeValues === 'false' ? undefined : {},
+                logsetIds: req.query.logsetIds && req.query.logsetIds === 'false' ? undefined : nibe.logsetIds
+            };
+            const values = nibe.values;
+            for (const id in values) {
+                if (!values.hasOwnProperty(id)) { continue; }
+                const x = values[id];
+                if (ids.length > 0 && !ids.find( (i) => i === x.id)) { continue; }
+                if (!(x instanceof Nibe1155Value)) { continue; }
+                if (rv.completeValues) {
+                    rv.completeValues[id] = x.toObject();
+                }
+                if (rv.simpleValues) {
+                    rv.simpleValues[id] = {
+                        rawValue: x.rawValue,
+                        rawValueAt: x.valueAt ? x.valueAt.getTime() : null
+                    };
+                }
+            }
+            debug.fine('query %o -> response: %o', req.query, rv);
+            res.json(rv);
+        } catch (err) {
+            handleError(err, req, res, next, debug);
+        }
+    }
+
 
 }

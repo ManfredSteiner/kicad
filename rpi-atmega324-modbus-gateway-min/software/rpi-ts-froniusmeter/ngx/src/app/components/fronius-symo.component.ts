@@ -88,17 +88,21 @@ export class FroniusSymoComponent implements OnInit, OnDestroy {
                 meter:             { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Meter'}
             };
         }
-        this._accordionData.froniusRegister.filter.filter = (data) => this.filter(this._accordionData.froniusRegister, data);
-        this._accordionData.common.filter.filter = (data) => this.filter(this._accordionData.common, data);
-        this._accordionData.inverter.filter.filter = (data) => this.filter(this._accordionData.inverter, data);
-        this._accordionData.nameplate.filter.filter = (data) => this.filter(this._accordionData.nameplate, data);
-        this._accordionData.setting.filter.filter = (data) => this.filter(this._accordionData.setting, data);
-        this._accordionData.status.filter.filter = (data) => this.filter(this._accordionData.status, data);
-        this._accordionData.control.filter.filter = (data) => this.filter(this._accordionData.control, data);
-        this._accordionData.storage.filter.filter = (data) => this.filter(this._accordionData.storage, data);
-        this._accordionData.inverterExtension.filter.filter = (data) => this.filter(this._accordionData.inverterExtension, data);
-        this._accordionData.stringCombiner.filter.filter = (data) => this.filter(this._accordionData.stringCombiner, data);
-        this._accordionData.meter.filter.filter = (data) => this.filter(this._accordionData.meter, data);
+        try {
+            this._accordionData.froniusRegister.filter.filter = (data) => this.filter(this._accordionData.froniusRegister, data);
+            this._accordionData.common.filter.filter = (data) => this.filter(this._accordionData.common, data);
+            this._accordionData.inverter.filter.filter = (data) => this.filter(this._accordionData.inverter, data);
+            this._accordionData.nameplate.filter.filter = (data) => this.filter(this._accordionData.nameplate, data);
+            this._accordionData.setting.filter.filter = (data) => this.filter(this._accordionData.setting, data);
+            this._accordionData.status.filter.filter = (data) => this.filter(this._accordionData.status, data);
+            this._accordionData.control.filter.filter = (data) => this.filter(this._accordionData.control, data);
+            this._accordionData.storage.filter.filter = (data) => this.filter(this._accordionData.storage, data);
+            this._accordionData.inverterExtension.filter.filter = (data) => this.filter(this._accordionData.inverterExtension, data);
+            this._accordionData.stringCombiner.filter.filter = (data) => this.filter(this._accordionData.stringCombiner, data);
+            this._accordionData.meter.filter.filter = (data) => this.filter(this._accordionData.meter, data);
+        } catch (err) {
+            console.log(err);
+        }
     }
 
     public ngOnInit () {

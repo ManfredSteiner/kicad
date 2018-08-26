@@ -9,6 +9,14 @@ export interface ICalculated {
     froniusSiteDailyOffset: number;
 }
 
+export interface IHeating {
+    brinePumpPower: number;
+    supplyPumpPower: number;
+    compressorPower: number;
+    electricHeaterPower: number;
+    compressorFrequency: number;
+}
+
 export interface IMonitorRecordRawData {
     froniusRegister:   { _createdAt: Date, _regs: IFroniusRegister };
     inverter:          { _createdAt: Date, _regs: IInverter };
@@ -18,6 +26,7 @@ export interface IMonitorRecordRawData {
     meter?:            { _createdAt: Date, _regs: IMeter };
     gridmeter?:        IFroniusMeterValues;
     extPvMeter?:       ISaiaAle3Meter [];
+    heating?:          IHeating;
     calculated?:       ICalculated;
 }
 
@@ -30,6 +39,7 @@ export interface IMonitorRecordData {
     meter?:            Meter;
     gridmeter?:        IFroniusMeterValues;
     extPvMeter?:       ISaiaAle3Meter [];
+    heating?:          IHeating;
     calculated?:       ICalculated;
 }
 
@@ -61,6 +71,9 @@ export class MonitorRecord {
         }
         if (data.calculated) {
             d.calculated = data.calculated;
+        }
+        if (data.heating) {
+            d.heating = data.heating;
         }
         return new MonitorRecord(d);
     }
@@ -103,6 +116,9 @@ export class MonitorRecord {
         }
         if (this._data.calculated) {
             rv.calculated = this._data.calculated;
+        }
+        if (this._data.heating) {
+            rv.heating = this._data.heating;
         }
         return rv;
     }
@@ -208,6 +224,26 @@ export class MonitorRecord {
         return this._data.gridmeter ? this._data.gridmeter.activeEnergy : Number.NaN;
     }
 
+    public get heatingBrinePumpPower (): number {
+        return this._data.heating.brinePumpPower;
+    }
+
+    public get heatingSupplyPumpPower (): number {
+        return this._data.heating.supplyPumpPower;
+    }
+
+    public get heatingCompressorPower (): number {
+        return this._data.heating.compressorPower;
+    }
+
+    public get heatingElectricHeaterPower (): number {
+        return this._data.heating.electricHeaterPower;
+    }
+
+    public get heatingCompressorFrequency (): number {
+        return this._data.heating.compressorFrequency;
+    }
+
     public toHumanReadableObject (): Object {
         const rv = {
             gridActivePower:            this.normaliseUnit(this.gridActivePower, 2, 'W'),
@@ -229,7 +265,12 @@ export class MonitorRecord {
             storageCurrent:             this.normaliseUnit(this.storageCurrent, 2, 'A'),
             froniusLoadActivePower:     this.normaliseUnit(this.froniusLoadActivePower, 2, 'W'),
             eIn:                        this.normaliseUnit(this.eIn, 2, 'Wh'),
-            eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh')
+            eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh'),
+            heatingBrinePumpPower:      this.normaliseUnit(this.heatingBrinePumpPower, 1, 'W'),
+            heatingSupplyPumpPower:     this.normaliseUnit(this.heatingSupplyPumpPower, 1, 'W'),
+            heatingCompressorPower:     this.normaliseUnit(this.heatingSupplyPumpPower, 0, 'W'),
+            heatingElectricHeaterPower: this.normaliseUnit(this.heatingElectricHeaterPower, 0, 'W'),
+            heatingCompressorFrequency: this.normaliseUnit(this.heatingElectricHeaterPower, 1, 'Hz'),
         };
         return rv;
     }

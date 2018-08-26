@@ -26,7 +26,7 @@ export class ModbusAsciiFrame implements ModbusFrame {
                     lrc = (lrc + x[i]) & 0xff;
                     s = s + sprintf('%02X', x[i]);
                 }
-                this._frame = s + sprintf('%02X\r\n', (255 - lrc) + 1);
+                this._frame = s + sprintf('%02X\r\n', ((255 - lrc) + 1) % 256);
                 this._lrcOk = true;
 
             } else if (x && typeof(x) === 'string' && x.length >= 9 && x.match(/^:([0-9A-F][0-9A-F])+\x0d\x0a$/)) {
@@ -40,7 +40,7 @@ export class ModbusAsciiFrame implements ModbusFrame {
                     this._buffer[j] = b;
                 }
                 const fLrc = parseInt(x.substr(x.length - 4, 2), 16);
-                this._lrcOk = fLrc === (255 - lrc) + 1;
+                this._lrcOk = fLrc === (((255 - lrc) + 1) % 256);
             } else {
                 throw new Error('cannot create frame from ' + x.toString());
             }
