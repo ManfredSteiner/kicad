@@ -5,12 +5,14 @@ const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:Nibe1155');
 import * as http from 'http';
 
 import { INibe1155Values, Nibe1155Value } from '../client/nibe1155-values';
+import { IHeatpumpMode } from '../client/monitor-record';
 
 
 interface INibe1155Config {
     host: string;
     port: number;
     path: string;
+    pathMode: string;
     start?: boolean;
     timeoutMillis?: number;
     pollingPeriodMillis?: number;
@@ -53,7 +55,8 @@ export class Nibe1155 {
         if (!config || config.start === false) { return; }
         if (!config.host || typeof(config.host) !== 'string') { throw new Error('invalid/missing host in config'); }
         if (config.port < 0 || config.port > 65535) { throw new Error('invalid/missing port in config'); }
-        if (!config.path || typeof(config.path) !== 'string') { throw new Error('invalid/missing host in path'); }
+        if (!config.path || typeof(config.path) !== 'string') { throw new Error('invalid/missing path'); }
+        if (!config.pathMode || typeof(config.pathMode) !== 'string') { throw new Error('invalid/missing pathMode in path'); }
     }
 
     public get lastValidResponse (): { at: Date; values: INibe1155Values } {
@@ -184,6 +187,52 @@ export class Nibe1155 {
                 rej(err);
             });
             requ.end();
+        });
+        return rv;
+    }
+
+    public async setHeatpumpMode (mode: IHeatpumpMode): Promise<IHeatpumpMode> {
+        if (!mode || !mode.createdAt || !mode.desiredMode
+             || !mode.pin) {
+            return Promise.reject(new Error('invalid mode'));
+        }
+        const rv = new Promise<IHeatpumpMode>( (resolve, reject) => {
+            const body = JSON.stringify(mode);
+            const options = Object.assign({}, this._options);
+            options.method = 'POST';
+            options.path = this._config.pathMode;
+            options.headers = {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body)
+            };
+            const req = http.request(options, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error('response error status ' + res.statusCode));
+                    return;
+                }
+                res.setEncoding('utf8');
+                let s = '';
+                res.on('data', chunk => {
+                    s += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        const r: IHeatpumpMode = JSON.parse(s);
+                        if (!r || !r.createdAt || !r.desiredMode || !r.currentMode) {
+                            throw new Error('invalid response for mode');
+                        }
+                        resolve(r);
+                    } catch (err) {
+                        debug.warn(err);
+                        reject(err);
+                    }
+                });
+            });
+            req.on('error', (err) => {
+                debug.warn(err);
+            });
+            req.write(body);
+            req.end();
         });
         return rv;
     }

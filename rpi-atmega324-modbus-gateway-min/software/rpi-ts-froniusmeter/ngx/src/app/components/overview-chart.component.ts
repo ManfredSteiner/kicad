@@ -3,6 +3,8 @@ import { Subscription } from 'rxjs';
 import { BaseChartDirective } from 'ng4-charts';
 import { DataService } from '../services/data.service';
 import { IMonitorRecordData, MonitorRecord } from '../server/monitor-record';
+import { INibe1155Value, Nibe1155Value } from '../server/nibe1155-values';
+import { sprintf } from 'sprintf-js';
 
 @Component({
     selector: 'app-overview-chart',
@@ -75,6 +77,7 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
 
     private handleMonitorValues (v: MonitorRecord) {
+        const n = this.dataService.nibe1155;
         if (!v) {
             this.chartData[0].data.push(null);
             this.chartData[1].data.push(null);
@@ -85,8 +88,11 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
             this.chartData[0].data.push(v.gridActivePower);
             this.chartData[1].data.push(v.storagePower);
             this.chartData[2].data.push(v.pvActivePower);
-            const heatPumpPower = v.heatingElectricHeaterPower + v.heatingCompressorPower +
-                                  v.heatingBrinePumpPower + v.heatingSupplyPumpPower;
+            const heatPumpPower = !n ? 0.0 :
+                n.values[43084].value + // electricHeaterPower
+                n.values[43141].value + // copressorInPower
+                n.values[43437].value / 100 * 30 + // supplyPumpSpeed
+                n.values[43439].value / 100 * 30; // brinePumpSpeed
             if (typeof(heatPumpPower) === 'number' && !Number.isNaN(heatPumpPower)) {
                 this.chartData[3].data.push(-v.loadActivePower + heatPumpPower);
                 this.chartData[4].data.push(-heatPumpPower);
@@ -128,7 +134,7 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 pv.value = Math.round(v.data.inverterExtension.string1_Power + v.data.extPvMeter[0].p).toString() + 'W / ' +
                            Math.round(v.data.calculated.pvSouthEnergyDaily + v.data.extPvMeter[0].de1).toString() + 'Wh' ;
             } else {
-                pv.value = Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' + 
+                pv.value = Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' +
                 Math.round(v.data.calculated.pvSouthEnergyDaily).toString() + 'Wh' ;
             }
 
@@ -140,41 +146,22 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 br: false
             };
             this.showValues.push(battery);
-            if (v.data.heating) {
-                const x = v.data.heating;
+
+            if (n) {
                 battery.br = true;
                 const hp = {
                     key: 'Wärmepumpe',
-                    value: 'Kompressor '
-                }
-                if (typeof x.compressorFrequency === 'number' && !Number.isNaN(x.compressorFrequency)) {
-                    let s = (Math.round(x.compressorFrequency * 10) / 10).toString();
-                    if (!s.match(/\.[0-9]$/)) { s += '.0'; }
-                    hp.value += s + 'Hz';
-                } else {
-                    hp.value += '?';
-                }
-                if (x.brinePumpPower === 0) {
-                    hp.value += ' / Sole AUS';
-                } else if (x.brinePumpPower > 0) {
-                    hp.value += ' / Sole EIN';
-                } else {
-                    hp.value += ' / Sole ?';
-                }
-                if (x.supplyPumpPower === 0) {
-                    hp.value += ' / Puffer AUS';
-                } else if (x.supplyPumpPower > 0) {
-                    hp.value += ' / Puffer EIN';
-                } else {
-                    hp.value += ' / Puffer ?';
-                }
-                if (x.electricHeaterPower === 0) {
-                    hp.value += ' / Elektrostab AUS';
-                } else if (x.electricHeaterPower > 0) {
-                    hp.value += ' / Elektrostab ' + Math.round(x.electricHeaterPower / 100) / 10 + 'kW';
-                } else {
-                    hp.value += ' / Elektrostab ?';
-                }
+                    value: ''
+                };
+                let nv: Nibe1155Value;
+                nv = n.values[43136]; const compressorFrequency = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[43439]; const brinePumpSpeed      = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[43437]; const supplyPumpSpeed     = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[43084]; const electricHeaterPower = nv && nv.valueAt ? nv.value : null;
+                hp.value += 'Kompressor ' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?');
+                hp.value += ' / Sole ' + (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?');
+                hp.value += ' / Puffer ' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?');
+                hp.value += ' / Elektrostab ' + (electricHeaterPower !== null ? sprintf('%.01fkW', electricHeaterPower / 1000) : '?');
                 this.showValues.push(hp);
             }
         }

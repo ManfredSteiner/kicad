@@ -266,13 +266,20 @@ export class Monitor {
             }
             const nibe = Nibe1155.Instance;
             if (nibe) {
-                x.heating = {
-                    brinePumpPower:      nibe.brinePumpPower,
-                    supplyPumpPower:     nibe.supplyPumpPower,
-                    compressorPower:     nibe.compressorPower,
-                    electricHeaterPower: nibe.electricHeaterPower,
-                    compressorFrequency: nibe.compressorFrequency
+                x.heatpump = {
+                    createdAt: new Date(),
+                    controller: nibe.controller,
+                    simpleValues: {}
                 };
+            }
+            for (const id of [
+                40008, 40012, 40015, 40016, 40017, 40071, 43005, 43084, 43136, 43141, 43427, 43431, 43433, 43437, 43439,
+                40004, 40033, 42439, 43416, 45001
+            ]) {
+                const v = nibe.values[id];
+                if (!v || !v.valueAt) { continue; }
+                x.heatpump.simpleValues[id] = { rawValue: v.rawValue, rawValueAt: v.valueAt.getTime() };
+
             }
             const r = MonitorRecord.create(x);
             this._history.push(r);

@@ -1,14 +1,19 @@
 import { sprintf } from 'sprintf-js';
 
+export interface INibe1155SimpleValue {
+    rawValue: number;
+    rawValueAt: number;
+}
+
 export interface INibe1155Values {
-    controller?: IController;
+    controller?: INibe1155Controller;
     completeValues?: { [id: string ]: INibe1155Value };
-    simpleValues?: { [id: string ]: { rawValue: number; rawValueAt: number } };
+    simpleValues?: { [id: string ]: INibe1155SimpleValue };
     logsetIds?: number [];
 }
 
-export interface IController {
-    createdAt: Date;
+export interface INibe1155Controller {
+    createdAt: Date | string | number;
     state: string;
     running: boolean;
     desiredState?: string;

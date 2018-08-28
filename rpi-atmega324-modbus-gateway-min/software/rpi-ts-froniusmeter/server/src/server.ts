@@ -18,6 +18,7 @@ import { Auth } from './auth';
 import { IUser, User } from './db/user';
 
 import { RouterData } from './routers/router-data';
+import { RouterControl } from './routers/router-control';
 
 interface IServerConfig {
     start: boolean;
@@ -77,6 +78,7 @@ export class Server {
         this._express.post('/auth', (req, res, next) => Auth.Instance.handlePostAuth(req, res, next));
 
         this._express.use('/data', RouterData.Instance);
+        this._express.use('/control', RouterControl.Instance);
         this._express.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
         this._express.use('/ngx', express.static(path.join(__dirname, '../../ngx/dist')));
         this._express.use('/assets', express.static(path.join(__dirname, '../../ngx/dist/assets')));

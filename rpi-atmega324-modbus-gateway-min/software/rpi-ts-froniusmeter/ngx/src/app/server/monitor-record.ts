@@ -2,6 +2,7 @@ import { FroniusRegister, IFroniusRegister, IInverter, Inverter, IInverterExtens
          IStorage, Storage, IMeter, Meter, INameplate, Nameplate } from './fronius-symo-values';
 import { IFroniusMeterValues } from './fronius-meter-values';
 import { ISaiaAle3Meter } from './saia-ale3-meter';
+import { INibe1155Controller, INibe1155Value, INibe1155SimpleValue } from './nibe1155-values';
 
 export interface ICalculated {
     pvSouthEnergyDaily: number;
@@ -9,12 +10,30 @@ export interface ICalculated {
     froniusSiteDailyOffset: number;
 }
 
-export interface IHeating {
-    brinePumpPower: number;
-    supplyPumpPower: number;
-    compressorPower: number;
-    electricHeaterPower: number;
-    compressorFrequency: number;
+export interface IHeatPumpValue {
+    at: Date | number;
+    value: number;
+    id: number;
+}
+
+export interface IHeatpumpMode {
+    createdAt: Date;
+    desiredMode: string;
+    currentMode?: string;
+    pin?: string;
+    fSetpoint?: number;
+    fMin?: number;
+    fMax?: number;
+    tempSetpoint?: number;
+    tempMin?: number;
+    tempMax?: number;
+}
+
+export interface IHeatPump {
+    createdAt: Date;
+    controller?: INibe1155Controller;
+    completeValues?: { [id: string ]: INibe1155Value };
+    simpleValues?: { [id: string ]: INibe1155SimpleValue };
 }
 
 export interface IMonitorRecordRawData {
@@ -26,7 +45,7 @@ export interface IMonitorRecordRawData {
     meter?:            { _createdAt: Date, _regs: IMeter };
     gridmeter?:        IFroniusMeterValues;
     extPvMeter?:       ISaiaAle3Meter [];
-    heating?:          IHeating;
+    heatpump?:         IHeatPump;
     calculated?:       ICalculated;
 }
 
@@ -39,7 +58,7 @@ export interface IMonitorRecordData {
     meter?:            Meter;
     gridmeter?:        IFroniusMeterValues;
     extPvMeter?:       ISaiaAle3Meter [];
-    heating?:          IHeating;
+    heatpump?:         IHeatPump;
     calculated?:       ICalculated;
 }
 
@@ -72,8 +91,8 @@ export class MonitorRecord {
         if (data.calculated) {
             d.calculated = data.calculated;
         }
-        if (data.heating) {
-            d.heating = data.heating;
+        if (data.heatpump) {
+            d.heatpump = data.heatpump;
         }
         return new MonitorRecord(d);
     }
@@ -117,8 +136,8 @@ export class MonitorRecord {
         if (this._data.calculated) {
             rv.calculated = this._data.calculated;
         }
-        if (this._data.heating) {
-            rv.heating = this._data.heating;
+        if (this._data.heatpump) {
+            rv.heatpump = this._data.heatpump;
         }
         return rv;
     }
@@ -224,24 +243,8 @@ export class MonitorRecord {
         return this._data.gridmeter ? this._data.gridmeter.activeEnergy : Number.NaN;
     }
 
-    public get heatingBrinePumpPower (): number {
-        return this._data.heating.brinePumpPower;
-    }
-
-    public get heatingSupplyPumpPower (): number {
-        return this._data.heating.supplyPumpPower;
-    }
-
-    public get heatingCompressorPower (): number {
-        return this._data.heating.compressorPower;
-    }
-
-    public get heatingElectricHeaterPower (): number {
-        return this._data.heating.electricHeaterPower;
-    }
-
-    public get heatingCompressorFrequency (): number {
-        return this._data.heating.compressorFrequency;
+    public get heatpump (): IHeatPump {
+        return this.data.heatpump;
     }
 
     public toHumanReadableObject (): Object {
@@ -266,11 +269,6 @@ export class MonitorRecord {
             froniusLoadActivePower:     this.normaliseUnit(this.froniusLoadActivePower, 2, 'W'),
             eIn:                        this.normaliseUnit(this.eIn, 2, 'Wh'),
             eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh'),
-            heatingBrinePumpPower:      this.normaliseUnit(this.heatingBrinePumpPower, 1, 'W'),
-            heatingSupplyPumpPower:     this.normaliseUnit(this.heatingSupplyPumpPower, 1, 'W'),
-            heatingCompressorPower:     this.normaliseUnit(this.heatingSupplyPumpPower, 0, 'W'),
-            heatingElectricHeaterPower: this.normaliseUnit(this.heatingElectricHeaterPower, 0, 'W'),
-            heatingCompressorFrequency: this.normaliseUnit(this.heatingElectricHeaterPower, 1, 'Hz'),
         };
         return rv;
     }

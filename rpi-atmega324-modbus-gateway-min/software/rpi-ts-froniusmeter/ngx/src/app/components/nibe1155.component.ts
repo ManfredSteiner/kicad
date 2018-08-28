@@ -3,6 +3,8 @@ import { DataService } from '../services/data.service';
 import { ConfigService } from '../services/config.service';
 import * as nibe1155 from '../server/nibe1155-values';
 import { Subscription } from 'rxjs';
+import { sprintf } from 'sprintf-js';
+import { MonitorRecord } from '../server/monitor-record';
 
 @Component({
     selector: 'app-nibe1155',
@@ -28,10 +30,9 @@ import { Subscription } from 'rxjs';
 })
 export class Nibe1155Component implements OnInit, OnDestroy {
 
-    private _nibe1155: nibe1155.INibe1155Values;
-
     private _accordionData: {
         overview:   IAccordion;
+        panel:      IAccordion;
         controller: IAccordion;
         logsetIds:  IAccordion;
         others:     IAccordion;
@@ -39,9 +40,7 @@ export class Nibe1155Component implements OnInit, OnDestroy {
 
     private _timer: any;
     private _subsciption: Subscription;
-    private _logsetIds: number [];
-    private _nonLogsetIds: number [];
-    private _values: { [ id: number ]: nibe1155.Nibe1155Value };
+    private _monitorValuesSubsciption: Subscription;
 
     public accordions: IAccordion [];
 
@@ -53,15 +52,16 @@ export class Nibe1155Component implements OnInit, OnDestroy {
             this._accordionData = x;
         } else {
             this._accordionData = {
-                overview:   {
-                    infos: [], filter: { isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Überblick'
-                },
+                overview:   { infos: [], isOpen: true, header: 'Überblick' },
+                panel:      {
+                                infos: [], isOpen: false, header: 'Steuerung',
+                                showComponent: [ { name: 'HeatingControllerComponent', config: null, data: null } ]
+                            },
                 controller: { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Controller'},
                 logsetIds:  { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'LOG.SET Register'},
                 others:     { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Weitere Register'}
             };
         }
-        this._accordionData.overview.filter.filter = (data) => this.filter(this._accordionData.overview, data);
         this._accordionData.controller.filter.filter = (data) => this.filter(this._accordionData.controller, data);
         this._accordionData.logsetIds.filter.filter = (data) => this.filter(this._accordionData.logsetIds, data);
         this._accordionData.others.filter.filter = (data) => this.filter(this._accordionData.others, data);
@@ -69,23 +69,14 @@ export class Nibe1155Component implements OnInit, OnDestroy {
 
     public ngOnInit () {
         console.log('onInit');
-        this._nibe1155 = {};
-        this._dataService.getNibe1155Values({ controller: true, completeValues: true }).subscribe( (values) => {
-            console.log(values);
-            if (values.controller) {
-                this.handleControllerValues(values.controller);
-            }
-            this.handleValues(values, true);
-            this.handleControllerValues(values.controller);
-            this.handleLogsetIds();
-            this.handleNonLogsetIds();
-        });
-
         this.accordions = [];
         for (const a in this._accordionData) {
             if (!this._accordionData.hasOwnProperty(a)) { continue; }
             this.accordions.push(this._accordionData[a]);
         }
+        this._monitorValuesSubsciption =
+            this._dataService.monitorObservable.subscribe((value) => this.handleMonitorValues(value));
+
     }
 
     public ngOnDestroy() {
@@ -99,7 +90,8 @@ export class Nibe1155Component implements OnInit, OnDestroy {
             this._subsciption = null;
         }
         this._configService.push('nibe1155:__accordionData', this._accordionData);
-        this._nibe1155 = null;
+        this._monitorValuesSubsciption.unsubscribe();
+        this._monitorValuesSubsciption = null;
     }
 
     public onAccordionOpenChanged (acc: IAccordion, open: boolean) {
@@ -107,26 +99,21 @@ export class Nibe1155Component implements OnInit, OnDestroy {
     }
 
     public async onButtonRefresh (a: IAccordion) {
-        if (a === this._accordionData.overview) {
-            this._dataService.getNibe1155Values().subscribe( (values) => {
-                console.log(values);
-                // this.handleSymoFroniusRegister(values);
-            });
-
-        } else if (a === this._accordionData.controller) {
+        if (a === this._accordionData.controller) {
             this._dataService.getNibe1155Values({ controller: true }).subscribe( (values) => {
-                this.handleControllerValues(values.controller);
+                this._dataService.handleNibe1155Values(values);
+                this.handleControllerValues();
             });
 
         } else if (a === this._accordionData.logsetIds) {
-            this._dataService.getNibe1155Values({ ids: this._logsetIds }).subscribe( (values) => {
-                this.handleValues(values);
+            this._dataService.getNibe1155Values({ ids: this._dataService.nibe1155.logsetIds }).subscribe( (values) => {
+                this._dataService.handleNibe1155Values(values);
                 this.handleLogsetIds();
             });
 
         } else if (a === this._accordionData.others) {
-            this._dataService.getNibe1155Values({ ids: this._nonLogsetIds }).subscribe( (values) => {
-                this.handleValues(values);
+            this._dataService.getNibe1155Values({ ids: this._dataService.nibe1155.nonLogsetIds }).subscribe( (values) => {
+                this._dataService.handleNibe1155Values(values);
                 this.handleNonLogsetIds();
             });
 
@@ -160,114 +147,146 @@ export class Nibe1155Component implements OnInit, OnDestroy {
         return rv;
     }
 
+    private isExpired (d: Date | string | number, milliSeconds, defaultValue = true): boolean {
+        try {
+            if (d instanceof Date) {
+                return (Date.now() - d.getTime()) > milliSeconds;
+            }
+            if (typeof d === 'number' && d > 0) {
+                return (Date.now() - d) > milliSeconds;
+            }
+            if (typeof d === 'string') {
+                d = new Date(d);
+                return (Date.now() - d.getTime()) > milliSeconds;
+            }
+            throw new Error('not a Date');
+        } catch (err) {
+            console.log('ERROR: not a valid date/time', d, err);
+            return defaultValue;
+        }
+    }
 
-    private handleControllerValues (v: nibe1155.IController) {
-        if (!this._nibe1155) { return; }
-        if (!v) {
-            this._nibe1155.controller = null;
+    private timeStampAsString (d: Date | string | number): string {
+        try {
+            const x = d instanceof Date ? d : new Date(<any>d);
+            return sprintf('%02d:%02d:%02d', x.getHours(), x.getMinutes(), x.getSeconds());
+        } catch (err) {
+            console.log('ERROR: not a valid date/time', d, err);
+            return '?';
+        }
+    }
+
+    private handleMonitorValues (v: MonitorRecord) {
+        this.handleOverview(v);
+    }
+
+
+    private handleOverview (v?: MonitorRecord) {
+        const x: any = {};
+        const a = this._accordionData.overview;
+        const n = this._dataService.nibe1155;
+        if (!n) {
+            a.infos = this.createAccordionInfo({});
+            return;
+        }
+        const controller = n.controller;
+        let nv: nibe1155.Nibe1155Value;
+        nv = n.values[43136]; const compressorFrequency = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[43439]; const brinePumpSpeed      = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[43437]; const supplyPumpSpeed     = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[43084]; const electricHeaterPower = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[40008]; const supplyFeedTemp      = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[40012]; const supplyReturnTemp    = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[40071]; const supplyTemp          = this.isValueOk(nv, 10000) ? nv.value : null;
+        nv = n.values[40004]; const outdoor             = this.isValueOk(nv, 4 * 60000) ? nv.value : null;
+
+        x.Update = new Date();
+        x.Heizung = controller ? controller.state : '?';
+        if (outdoor !== null) {
+            x.Außentemperatur = sprintf('%.01f°C', outdoor);
+        }
+        if (compressorFrequency !== null) {
+            x.Kompressorfrequenz = sprintf('%.01fHz', compressorFrequency);
+        }
+        if (electricHeaterPower !== null) {
+            x.Elektrostab = sprintf('%.02fkW', electricHeaterPower / 1000);
+        }
+        if (supplyPumpSpeed !== null) {
+            x.Pufferpumpe = sprintf('%d%%', supplyPumpSpeed);
+        }
+        if (brinePumpSpeed !== null) {
+            x.Solepumpe = sprintf('%d%%', brinePumpSpeed);
+        }
+        if (supplyPumpSpeed > 0) {
+            if (supplyFeedTemp !== null) {
+                x.Vorlauf = sprintf('%.01f°C', supplyFeedTemp);
+            }
+            if (supplyReturnTemp !== null) {
+                x.Rücklauf = sprintf('%.01f°C', supplyReturnTemp);
+            }
+        }
+        if (supplyTemp !== null) {
+            x.Puffer = sprintf('%.01f°C', supplyTemp);
+        }
+
+
+        a.infos = this.createAccordionInfo(x);
+    }
+
+    private isValueOk (v: nibe1155.Nibe1155Value, timeoutMillis: number) {
+        if (!v || !v.valueAt) { return false; }
+        return (Date.now() - v.valueAt.getTime()) < timeoutMillis;
+    }
+
+
+    private handleControllerValues () {
+        const controller = this._dataService.nibe1155 && this._dataService.nibe1155.controller;
+        if (!controller) {
             this._accordionData.controller.infos = [];
         } else {
             const a = this._accordionData.controller;
-            a.infos = this.createAccordionInfo(v);
+            a.infos = this.createAccordionInfo(controller);
         }
 
     }
 
     private handleLogsetIds () {
+        const a = this._accordionData.logsetIds;
+        const n = this._dataService.nibe1155;
+        if (!n || !Array.isArray(n.logsetIds)) {
+            a.infos = [];
+            return;
+        }
         const x: { [ key: string ]: string } = {};
-        if (Array.isArray(this._logsetIds)) {
-            for (const id of this._logsetIds) {
-                const v = this._values[id];
-                if (!v) {
-                    x['? (' + id + ')'] = '?';
-                } else {
-                    x[v.label + ' (' + v.id + ')'] = v.valueAsString(true);
-                }
+        for (const id of n.logsetIds) {
+            const v = n.values[id];
+            if (!v) {
+                x['? (' + id + ')'] = '?';
+            } else {
+                x[v.label + ' (' + v.id + ')'] = v.valueAsString(true);
             }
         }
-        const a = this._accordionData.logsetIds;
-        console.log(x);
         a.infos = this.createAccordionInfo(x);
     }
 
     private handleNonLogsetIds () {
+        const a = this._accordionData.others;
+        const n = this._dataService.nibe1155;
+        if (!n || !Array.isArray(n.nonLogsetIds)) {
+            a.infos = [];
+            return;
+        }
         const x: { [ key: string ]: string } = {};
-        if (Array.isArray(this._nonLogsetIds)) {
-            for (const id of this._nonLogsetIds) {
-                const v = this._values[id];
-                if (!v) {
-                    x['? (' + id + ')'] = '?';
-                } else {
-                    x[v.label + ' (' + v.id + ')'] = v.valueAsString(true);
-                }
+        for (const id of n.nonLogsetIds) {
+            const v = n.values[id];
+            if (!v) {
+                x['? (' + id + ')'] = '?';
+            } else {
+                x[v.label + ' (' + v.id + ')'] = v.valueAsString(true);
             }
         }
-        const a = this._accordionData.others;
-        console.log(x);
         a.infos = this.createAccordionInfo(x);
     }
-
-    private handleValues (v: nibe1155.INibe1155Values, clear?: boolean) {
-        if (clear) {
-            if (Array.isArray(v.logsetIds)) {
-                this._logsetIds = [].concat(v.logsetIds);
-            } else {
-                console.log(new Error('unexpected response, missing logsetIds'));
-                this._logsetIds = [];
-            }
-            this._nonLogsetIds = [];
-            if (v.completeValues) {
-                for (const id in v.completeValues) {
-                    if (!v.completeValues.hasOwnProperty(id)) { continue; }
-                    if (!Array.isArray(this._logsetIds) || !this._logsetIds.find( (i) => i === +id)) {
-                        this._nonLogsetIds.push(+id);
-                    }
-                }
-            }
-            console.log(this._logsetIds);
-            console.log(this._nonLogsetIds);
-            this._values = {};
-        }
-
-        if (v.completeValues) {
-            let cnt = 0;
-            for (const id in v.completeValues) {
-                if (!v.completeValues.hasOwnProperty(id)) { continue; }
-                this._values[id] = nibe1155.Nibe1155Value.createInstance(v.completeValues[id]);
-                cnt++;
-            }
-            console.log(cnt + ' completeValues defined');
-        }
-        if (v.simpleValues) {
-            let cnt = 0;
-            for (const id in v.simpleValues) {
-                if (!v.simpleValues.hasOwnProperty(id)) { continue; }
-                const x = this._values[+id];
-                if (!x) {
-                    console.log(new Error('missing complete value for simpleValue id ' + id));
-                } else {
-                    x.setRawValue(v.simpleValues[id].rawValue, new Date(v.simpleValues[id].rawValueAt));
-                    cnt++;
-                }
-            }
-            console.log(cnt + ' simpleValues updated');
-        }
-    }
-
-    // private handleSymoFroniusRegister (v: symo.IFroniusSymoValues) {
-    //     if (!this._symo) { return; }
-    //     if (v.froniusRegister) {
-    //         if (v.froniusRegister.error) {
-    //             this._symo.froniusRegister = null;
-    //             this._accordionData.froniusRegister.infos = [];
-    //         } else {
-    //             const a = this._accordionData.froniusRegister;
-    //             this._symo.froniusRegister = new symo.FroniusRegister(v.froniusRegister.createdAt, v.froniusRegister.regs);
-    //             a.infos = this.createAccordionInfo(this._symo.froniusRegister.toHumanReadableObject());
-    //         }
-    //     }
-    // }
-
 
 
     private createAccordionInfo (data: any, width?: string): { key: string, value: string, width: string } [] {

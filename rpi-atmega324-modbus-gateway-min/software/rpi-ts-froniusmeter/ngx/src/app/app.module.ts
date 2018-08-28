@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 
 import { FilterPipe } from './pipes/filter-pipe';
+import { ValidatorDirective } from './directives/validator.directive';
 import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar.component';
 import { TestComponent } from './test.component';
@@ -14,6 +15,7 @@ import { OverviewChartComponent } from './components/overview-chart.component';
 import { FroniusmeterComponent } from './components/froniusmeter.component';
 import { FroniusSymoComponent } from './components/fronius-symo.component';
 import { Nibe1155Component } from './components/nibe1155.component';
+import { HeatingControllerComponent } from './components/heating-controller.component';
 
 import { ChartsModule } from 'ng4-charts/ng4-charts';
 import { AccordionModule, AlertModule, CollapseModule } from 'ngx-bootstrap';
@@ -31,14 +33,15 @@ const appRoutes: Routes = [
 
 @NgModule({
     declarations: [
-        FilterPipe,
+        FilterPipe, ValidatorDirective,
         AppComponent, NavbarComponent,
         TestComponent,
         GridComponent,
         OverviewComponent, OverviewChartComponent,
         FroniusmeterComponent,
         FroniusSymoComponent,
-        Nibe1155Component
+        Nibe1155Component,
+        HeatingControllerComponent
     ],
     imports: [
         BrowserModule,
