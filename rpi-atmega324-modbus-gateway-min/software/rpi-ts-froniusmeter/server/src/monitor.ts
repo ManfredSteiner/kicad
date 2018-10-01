@@ -22,6 +22,7 @@ interface IMonitorConfig {
     timeOffset?:          { sec: number, ms: number };
     froniusPeriodMillis?: number;
     tempFile?:            { path: string; backups?: number };
+    saveDebug?:           boolean;
 }
 
 interface ITempFileRecord {
@@ -51,6 +52,7 @@ export class Monitor {
     private _lastCaclulated: ICalculated;
     private _pvSouthEnergyDaily = 0;
     private _lastTempCnt = 0;
+    private _debugLastTime: string;
 
     private constructor () {
         const cfg: IMonitorConfig = nconf.get('monitor');
@@ -281,6 +283,7 @@ export class Monitor {
                 x.heatpump.simpleValues[id] = { rawValue: v.rawValue, rawValueAt: v.valueAt.getTime() };
 
             }
+            this.saveDebugFile(x);
             const r = MonitorRecord.create(x);
             this._history.push(r);
             if (this._history.length > 60) {
@@ -320,6 +323,34 @@ export class Monitor {
 
         } catch (err) {
             debug.warn('tempFile error\n%e', err);
+        }
+    }
+
+    private saveDebugFile (x: IMonitorRecordData) {
+        if (!this._config.saveDebug) { return; }
+        try {
+            const ts = new Date();
+            const tsString = ts.toLocaleTimeString();
+            if (tsString === this._debugLastTime) { return; }
+            this._debugLastTime = tsString;
+            const filename = sprintf('/var/log/fronius/%04d-%02d-%02d_debug.csv', ts.getFullYear(), ts.getMonth() + 1, ts.getDate());
+            let s = '';
+            let t = '"Time"';       s = '"' + tsString + '"';
+            t += ',"String1-P/Wh"'; s += sprintf(',"%8.01f"', x.inverterExtension.string1_Power);
+            t += ',"String1-V/V"';  s += sprintf(',"%8.01f"', x.inverterExtension.string1_Voltage);
+            t += ',"String1_I/A"';  s += sprintf(',"%8.02f"', x.inverterExtension.string1_Current);
+            t += ',"PVEW-P/Wh"';    s += sprintf(',"%7.02f"', x.extPvMeter[0].p);
+            t += ',"PVS-E/Wh"';    s += sprintf(',"%7.02f"', x.calculated.pvSouthEnergyDaily);
+            t += ',"PVEW-E/Wh"';    s += sprintf(',"%7.02f"', x.extPvMeter[0].e2);
+
+            if (!fs.existsSync(filename)) {
+                fs.writeFileSync(filename, t + '\n');
+            }
+
+            s = s.replace(/\./g, ',');
+            fs.appendFileSync(filename, s + '\n');
+        } catch (err) {
+            debug.warn('cannot write debug file...\n%e', err);
         }
     }
 
