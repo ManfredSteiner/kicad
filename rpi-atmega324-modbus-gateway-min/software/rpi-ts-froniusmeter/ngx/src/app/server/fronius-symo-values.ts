@@ -699,35 +699,39 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     public get string1_Name (): string { return this._regs.r12_1_IDStr; }
 
     public get string1_Current (): number {
-        if (this._regs.r28_1_DCst === 65535 && this._regs.r20_1_DCA === 65535) {
-            return 0;
-        } else {
-            return this.scale(this._regs.r20_1_DCA, this._regs.r03_DCA_SF);
+        switch (this._regs.r28_1_DCst) {
+            case 2: case 4: case 5: case 6: case 7: case 8:
+                return this.scale(this._regs.r20_1_DCA, this._regs.r03_DCA_SF);
+            case 1: case 3: default:
+                if (this._regs.r20_1_DCA !== 0) {
+                    console.log('Fronius Symo bug: inverter extension r20_1_DCA = ' + this._regs.r20_1_DCA);
+                }
+                return 0;
         }
     }
 
     public get string1_Voltage (): number {
         switch (this._regs.r28_1_DCst) {
-            case 1: case 2: case 4: case 5: case 5: case 7: case 8:
-                break;
-            default:
-                if (this._regs.r21_1_DCV === 65535) {
-                    return 0;
+            case 2: case 4: case 5: case 6: case 7: case 8:
+                return this.scale(this._regs.r21_1_DCV, this._regs.r04_DCV_SF);
+            case 1: case 3: default:
+                if (this._regs.r21_1_DCV !== 0) {
+                    console.log('Fronius Symo bug: inverter extension r21_1_DCV = ' + this._regs.r21_1_DCV);
                 }
+                return 0;
         }
-        return this.scale(this._regs.r21_1_DCV, this._regs.r04_DCV_SF);
     }
 
     public get string1_Power (): number {
         switch (this._regs.r28_1_DCst) {
-            case 1: case 2: case 4: case 5: case 5: case 7: case 8:
-                break;
-            default:
-                if (this._regs.r22_1_DCW === 65535) {
-                    return 0;
+            case 2: case 4: case 5: case 6: case 7: case 8:
+                return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF);
+            case 1: case 3: default:
+                if (this._regs.r22_1_DCW !== 0) {
+                    console.log('Fronius Symo bug: inverter extension r22_1_DCW = ' + this._regs.r22_1_DCW);
                 }
+                return 0;
         }
-        return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF);
     }
 
     public get string1_LifetimeEnergy (): number { return this.scale(this._regs.r23_1_DCWH, this._regs.r06_DCWH_SF); }
@@ -803,7 +807,6 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
     }
 
     private stringOperatingState (reg: number): string {
-        console.log('stringOperatingState', reg);
         switch (reg) {
             case 1: return 'OFF';
             case 2: return 'IN OPERATION';
