@@ -564,6 +564,13 @@ class InverterExtensionFactory {
             r47_2_Tmp:   mt.getRegisterAsInt16( 40263 + 47),
             r48_2_DCst:  mt.getRegisterAsUint16(40263 + 48)
         };
+        // if (data.r22_1_DCW === 65535) {
+        //     data.r22_1_DCW = 0;
+        // }
+        // if (data.r28_1_DCst === 3 && data.r21_1_DCV === 65535) {
+        //     // RUN UP PHASE, wrong values
+        //     data.r21_1_DCV = 0;
+        // }
         const rv = new InverterExtension(mt.response.at, data);
         return rv;
     }

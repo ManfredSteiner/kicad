@@ -155,13 +155,18 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 };
                 let nv: Nibe1155Value;
                 nv = n.values[43136]; const compressorFrequency = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[43141]; const compressorInPower   = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43439]; const brinePumpSpeed      = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43437]; const supplyPumpSpeed     = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43084]; const electricHeaterPower = nv && nv.valueAt ? nv.value : null;
-                hp.value += 'Kompressor ' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?');
+                nv = n.values[40017]; const condenserOutTemp    = nv && nv.valueAt ? nv.value : null;
+                const p = (electricHeaterPower !== null ? electricHeaterPower : 0) + (compressorInPower !== null ? compressorInPower : 0);
+                hp.value += 'Kompressor ' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') +
+                                      '/' + (condenserOutTemp !== null ? sprintf('%.01f°C', condenserOutTemp) : '?°C');
+
                 hp.value += ' / Sole ' + (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?');
                 hp.value += ' / Puffer ' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?');
-                hp.value += ' / Elektrostab ' + (electricHeaterPower !== null ? sprintf('%.01fkW', electricHeaterPower / 1000) : '?');
+                hp.value += ' / P ' + sprintf('%.01fkW', p / 1000);
                 this.showValues.push(hp);
             }
         }
