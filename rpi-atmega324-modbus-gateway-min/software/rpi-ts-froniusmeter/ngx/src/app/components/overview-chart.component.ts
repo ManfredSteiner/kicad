@@ -157,16 +157,28 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 nv = n.values[43136]; const compressorFrequency = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43141]; const compressorInPower   = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43439]; const brinePumpSpeed      = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[40016]; const brineOutTemp        = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[40015]; const brineInTemp        = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43437]; const supplyPumpSpeed     = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43084]; const electricHeaterPower = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[40017]; const condenserOutTemp    = nv && nv.valueAt ? nv.value : null;
-                const p = (electricHeaterPower !== null ? electricHeaterPower : 0) + (compressorInPower !== null ? compressorInPower : 0);
-                hp.value += 'Kompressor ' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') +
-                                      '/' + (condenserOutTemp !== null ? sprintf('%.01f°C', condenserOutTemp) : '?°C');
+                nv = n.values[40071]; const supplyTemp          = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[40008]; const supplyS1Temp        = nv && nv.valueAt ? nv.value : null;
 
-                hp.value += ' / Sole ' + (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?');
-                hp.value += ' / Puffer ' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?');
-                hp.value += ' / P ' + sprintf('%.01fkW', p / 1000);
+                const p = (electricHeaterPower !== null ? electricHeaterPower : 0) + (compressorInPower !== null ? compressorInPower : 0);
+                hp.value += 'K(' +
+                                (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') +
+                                '/' + (supplyS1Temp !== null ? sprintf('%.01f°C', supplyS1Temp) : '?°C') +
+                                '/' + (condenserOutTemp !== null ? sprintf('%.01f°C', condenserOutTemp) : '?°C') +
+                            '), Puffer(' +
+                                (supplyTemp !== null ? sprintf('%.01f°C', supplyTemp) : '?°C') +
+                                '/' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?%') +
+                            '), Sole(' + 
+                                (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?') +
+                                '/' + (brineInTemp !== null ? sprintf('%.01f°C', brineInTemp) : '?°C') +
+                                '/' + (brineOutTemp !== null ? sprintf('%.01f°C', brineOutTemp) : '?°C') +
+                            '), P=' + sprintf('%.0fW', p);
+
                 this.showValues.push(hp);
             }
         }

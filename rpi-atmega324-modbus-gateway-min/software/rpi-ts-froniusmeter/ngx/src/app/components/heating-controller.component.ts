@@ -54,20 +54,19 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
                         break;
                     }
 
-                    case 'economy': {
-                        this._inputFrequency.hidden = true;
-                        this._inputFrequencyMin.hidden = false;
-                        this._inputFrequencyMax.hidden = false;
-                        this._inputTemp.hidden = true;
-                        this._inputTempMin.hidden = false;
-                        this._inputTempMax.hidden = false;
-                        break;
-                    }
-
                     case 'frequency': {
                         this._inputFrequency.hidden = false;
                         this._inputFrequencyMin.hidden = true;
                         this._inputFrequencyMax.hidden = true;
+                        this._inputTemp.hidden = true;
+                        this._inputTempMin.hidden = true;
+                        this._inputTempMax.hidden = true;
+                        break;
+                    }
+                    case 'economy': {
+                        this._inputFrequency.hidden = true;
+                        this._inputFrequencyMin.hidden = false;
+                        this._inputFrequencyMax.hidden = false;
                         this._inputTemp.hidden = true;
                         this._inputTempMin.hidden = false;
                         this._inputTempMax.hidden = false;
