@@ -105,7 +105,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readFroniusRegister (): Promise<FroniusRegister> {
         try {
-            const to = this._config.timeoutMillis.froniusRegister;
+            const to = this._config.timeoutMillis.froniusRegister ? this._config.timeoutMillis.froniusRegister : this._config.timeoutMillis.default;
             if (!this._froniusRegister || (Date.now() - this._froniusRegister.createdAt.getTime() > 1000 )) {
                 const mt212 = await this._gateway.readHoldRegisters(this.address, 212, 5, to);
                 const mt500 = await this._gateway.readHoldRegisters(this.address, 500, 14, to);
@@ -123,7 +123,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readCommon (): Promise<Common> {
         try {
-            const to = this._config.timeoutMillis.common;
+            const to = this._config.timeoutMillis.common ? this._config.timeoutMillis.common : this._config.timeoutMillis.default;
             if (!this._common || (Date.now() - this._common.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40001, 69, to);
                 this._common = CommonFactory.parseModbusTransaction(mt);
@@ -140,7 +140,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readInverter (): Promise<Inverter> {
         try {
-            const to = this._config.timeoutMillis.inverter;
+            const to = this._config.timeoutMillis.inverter ? this._config.timeoutMillis.inverter : this._config.timeoutMillis.default;
             if (!this._inverter || (Date.now() - this._inverter.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40070, 62, to);
                 this._inverter = InverterFactory.parseModbusTransaction(mt);
@@ -157,7 +157,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readNameplate (): Promise<Nameplate> {
         try {
-            const to = this._config.timeoutMillis.nameplate;
+            const to = this._config.timeoutMillis.nameplate ? this._config.timeoutMillis.nameplate : this._config.timeoutMillis.default;
             if (!this._nameplate || (Date.now() - this._nameplate.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40132, 28, to);
                 this._nameplate = NameplateFactory.parseModbusTransaction(mt);
@@ -174,7 +174,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readSetting (): Promise<Setting> {
         try {
-            const to = this._config.timeoutMillis.setting;
+            const to = this._config.timeoutMillis.setting ? this._config.timeoutMillis.setting : this._config.timeoutMillis.default;
             if (!this._setting || (Date.now() - this._setting.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40160, 31, to);
                 this._setting = SettingFactory.parseModbusTransaction(mt);
@@ -191,7 +191,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readStatus (): Promise<Status> {
         try {
-            const to = this._config.timeoutMillis.status;
+            const to = this._config.timeoutMillis.status ? this._config.timeoutMillis.status : this._config.timeoutMillis.default;
             if (!this._status || (Date.now() - this._status.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40192, 45, to);
                 this._status = StatusFactory.parseModbusTransaction(mt);
@@ -208,7 +208,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readControl (): Promise<Control> {
         try {
-            const to = this._config.timeoutMillis.control;
+            const to = this._config.timeoutMillis.control ? this._config.timeoutMillis.control : this._config.timeoutMillis.default;
             if (!this._control || (Date.now() - this._control.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40237, 27, to);
                 this._control = ControlFactory.parseModbusTransaction(mt);
@@ -225,7 +225,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readStorage (): Promise<Storage> {
         try {
-            const to = this._config.timeoutMillis.storage;
+            const to = this._config.timeoutMillis.storage ? this._config.timeoutMillis.storage : this._config.timeoutMillis.default;
             if (!this._storage || (Date.now() - this._storage.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40314, 26, to);
                 this._storage = StorageFactory.parseModbusTransaction(mt);
@@ -243,7 +243,7 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readInverterExtension (): Promise<InverterExtension> {
         try {
-            const to = this._config.timeoutMillis.inverterExtension;
+            const to = this._config.timeoutMillis.inverterExtension ? this._config.timeoutMillis.inverterExtension : this._config.timeoutMillis.default;
             if (!this._inverterExtension || (Date.now() - this._inverterExtension.createdAt.getTime() > 1000 )) {
                 const mt = await this._gateway.readHoldRegisters(this.address, 40264, 50, to);
                 this._inverterExtension = InverterExtensionFactory.parseModbusTransaction(mt);
@@ -261,7 +261,7 @@ export class FroniusSymo extends ModbusTcpDevice {
     public async readStringCombiner (): Promise<StringCombiner> {
         let mt: ModbusTransaction;
         try {
-            const to = this._config.timeoutMillis.stringCombiner;
+            const to = this._config.timeoutMillis.stringCombiner ? this._config.timeoutMillis.stringCombiner : this._config.timeoutMillis.default;
             if (!this._stringCombiner || (Date.now() - this._stringCombiner.createdAt.getTime() > 1000 )) {
                 mt = await this._gateway.readHoldRegisters(this.address, 40070, 58, to);
             } else {
@@ -287,7 +287,8 @@ export class FroniusSymo extends ModbusTcpDevice {
 
     public async readMeter (): Promise<Meter> {
         try {
-            const to = this._config.timeoutMillis.meter;
+            const to = this._config.timeoutMillis.meter ? this._config.timeoutMillis.meter : this._config.timeoutMillis.default;
+            // console.log('--> readMeter, to=' + to);
             if (!this._meter || (Date.now() - this._meter.createdAt.getTime() > 1000 )) {
                 const mt070 = await this._gateway.readHoldRegisters(240, 40070, 125, to);
                 const mt194 = await this._gateway.readHoldRegisters(240, 40194, 2, to);

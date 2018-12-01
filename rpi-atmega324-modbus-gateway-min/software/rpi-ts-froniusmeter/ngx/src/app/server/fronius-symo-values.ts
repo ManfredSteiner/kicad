@@ -704,7 +704,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
                 return this.scale(this._regs.r20_1_DCA, this._regs.r03_DCA_SF);
             case 1: case 3: default:
                 if (this._regs.r20_1_DCA !== 0) {
-                    console.log('Fronius Symo bug: inverter extension r20_1_DCA = ' + this._regs.r20_1_DCA);
+                    // console.log('Fronius Symo bug: inverter extension r20_1_DCA = ' + this._regs.r20_1_DCA);
                 }
                 return 0;
         }
@@ -716,7 +716,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
                 return this.scale(this._regs.r21_1_DCV, this._regs.r04_DCV_SF);
             case 1: case 3: default:
                 if (this._regs.r21_1_DCV !== 0) {
-                    console.log('Fronius Symo bug: inverter extension r21_1_DCV = ' + this._regs.r21_1_DCV);
+                    // console.log('Fronius Symo bug: inverter extension r21_1_DCV = ' + this._regs.r21_1_DCV);
                 }
                 return 0;
         }
@@ -728,7 +728,7 @@ export class InverterExtension extends SymoModel<IInverterExtension> {
                 return this.scale(this._regs.r22_1_DCW, this._regs.r05_DCW_SF);
             case 1: case 3: default:
                 if (this._regs.r22_1_DCW !== 0) {
-                    console.log('Fronius Symo bug: inverter extension r22_1_DCW = ' + this._regs.r22_1_DCW);
+                    // console.log('Fronius Symo bug: inverter extension r22_1_DCW = ' + this._regs.r22_1_DCW);
                 }
                 return 0;
         }

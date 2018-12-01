@@ -221,7 +221,8 @@ export class Monitor {
                 }
             }
 
-            const d = FroniusMeter.getInstance(1);
+            // const d = FroniusMeter.getInstance(1);
+            const d: FroniusMeter = null;
             const fm = d instanceof FroniusMeter ? d.toValuesObject() : null;
             let saiaMeter: ISaiaAle3Meter;
             if (fm) {

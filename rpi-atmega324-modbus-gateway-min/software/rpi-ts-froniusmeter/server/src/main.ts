@@ -1,5 +1,4 @@
-
-export const VERSION = '0.17.0';
+export const VERSION = '0.18.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -66,6 +65,7 @@ if (logfileConfig) {
 // ***********************************************************
 
 import { sprintf } from 'sprintf-js';
+
 import { Server } from './server';
 import { PiTechnik } from './devices/pi-technik';
 import { Nibe1155 } from './devices/nibe1155';

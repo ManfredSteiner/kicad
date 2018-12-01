@@ -60,6 +60,7 @@ export class ModbusTcp {
 
     /* tslint:disable:no-bitwise */
     public async readHoldRegisters (devId: number, addr: number, quantity: number, timeoutMillis?: number): Promise<ModbusTransaction> {
+        // console.log('  --> readHoldRegisters, timeoutMillis=' + timeoutMillis);
         if (this.disabled) { return Promise.reject(new Error('ModbusTCP is disabled')); }
         if (!this._connection) { return Promise.reject(new Error('ModbusTCP connection closed')); }
         const transactionId = this._tID;
@@ -75,7 +76,7 @@ export class ModbusTcp {
         b[9] = (addr - 1) & 0xff;
         b[10] = (quantity >> 8) & 0xff;
         b[11] = quantity & 0xff;
-        debug.fine('Read %d Hold registers from devId/addr=%d/%d\nsending: %o', quantity, devId, addr, b);
+        debug.fine('Read %d Hold registers from devId/addr=%d/%d (timeout=%d)\nsending: %o', quantity, devId, addr, timeoutMillis, b);
 
         return this._connection.send(b, timeoutMillis);
     }
@@ -181,6 +182,7 @@ export class ModbusTransaction {
 export class ModbusTcpTransactionFactory extends ModbusTransaction {
 
     public async send (to: net.Socket, request: Buffer, timeoutMillis = 1000): Promise<ModbusTransaction> {
+        // console.log('      --> ModbusTcpTransactionFactory.send, timeoutMillis=' + timeoutMillis);
         if (this._request || this._resolve || this._reject) {
             return Promise.reject(new ModbusTcpTransactionError(this, 'sending fails, request already set or send'));
         }
@@ -542,10 +544,12 @@ class ModbusTcpConnection {
             const mt = new ModbusTcpTransactionFactory();
             this._pendingRequest = mt;
             debug.finest('%s: sending request\n%o', this._name, b);
+            // console.log('    --> ModbusTcpConnection.send, timeoutMillis=' + timeoutMillis);
             return mt.send(this._socket, b, timeoutMillis);
         } else {
             debug.finest('connection #%s, request pending, queue new request (%d queued)', this._name, this._waitingRequests.length);
             return new Promise<ModbusTransaction>( (res, rej) => {
+                // console.log('    --> ModbusTcpConnection.push, timeoutMillis=' + timeoutMillis);
                 this._waitingRequests.push( { timeout: Date.now() + timeoutMillis, res: res, rej: rej, request: b } );
                 if (!this._waitingTimer) {
                     this._waitingTimer = setInterval( () => this.checkWaitingRequests (), 1000);
@@ -572,16 +576,22 @@ class ModbusTcpConnection {
                 this._responseFactory = null;
                 const pr = this._pendingRequest;
                 this._pendingRequest = null;
-                if (this._waitingRequests.length > 0) {
+                while (this._waitingRequests.length > 0) {
                     try {
                         const r = this._waitingRequests.splice(0, 1);
                         const mt = new ModbusTcpTransactionFactory();
                         this._pendingRequest = mt;
-                        mt.send(this._socket, r[0].request).then( (result) => {
-                            r[0].res(result);
-                        }).catch( (err) =>  {
-                            r[0].rej(err);
-                        });
+                        const to = r[0].timeout - Date.now();
+                        if (to > 0) {
+                            mt.send(this._socket, r[0].request, to).then( (result) => {
+                                r[0].res(result);
+                            }).catch( (err) =>  {
+                                r[0].rej(err);
+                            });
+                            break;
+                        } else {
+                            r[0].rej(new ModbusTcpTransactionError(mt, 'Timeout'));
+                        }
                     } catch (err) {
                         debug.warn('handleData ???\n%e', err);
                     }
