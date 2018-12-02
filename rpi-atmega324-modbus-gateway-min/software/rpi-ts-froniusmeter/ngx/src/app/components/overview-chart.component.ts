@@ -76,6 +76,13 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
     }
 
 
+    private getValue (x: any): number {
+        if (typeof(x) === 'number' && !Number.isNaN(x)) {
+            return x;
+        }
+        return null;
+    }
+
     private handleMonitorValues (v: MonitorRecord) {
         const n = this.dataService.nibe1155;
         if (!v) {
@@ -117,42 +124,71 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         // this.showValues.push({ key: 'string2_P', value: invExt['string2_Power'] });
         // this.showValues.push({ key: 'dcPower', value: inv['dcPower'] });
         if (v) {
-            const pv = { key: 'PV', value: '' };
-            const pvS = {
-                key: 'PV-Süd',
-                value: Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' +
-                       Math.round(v.data.calculated.pvSouthEnergyDaily) + 'Wh' +
-                       '(' + Math.round(v.data.froniusRegister.siteEnergyDay) + 'Wh)'
-            };
-            const pvEW = { key: 'PV-Ost/West', value: '', br: true };
-            this.showValues.push(pv);
-            this.showValues.push(pvS);
-            this.showValues.push(pvEW);
+            // first line - photovoltaik overview
+            {
+                const ps = this.getValue(v.data.inverterExtension.string1_Power);
+                const es = this.getValue(v.data.calculated.pvSouthEnergyDaily);
+                const esSite = this.getValue(v.data.froniusRegister.siteEnergyDay);
+                let pew = null;
+                let eew = null;
+                let ppv = ps;
+                let epv = es;
+                if (Array.isArray(v.data.extPvMeter) && v.data.extPvMeter.length === 1) {
+                    pew = this.getValue(v.data.extPvMeter[0].p);
+                    eew = this.getValue(v.data.extPvMeter[0].de1);
+                    ppv = ps + pew;
+                    epv = es + eew;
+                }
 
-            if (Array.isArray(v.data.extPvMeter) && v.data.extPvMeter.length === 1) {
-                pvEW.value = v.data.extPvMeter[0].p + 'W / ' + v.data.extPvMeter[0].de1 + 'Wh';
-                pv.value = Math.round(v.data.inverterExtension.string1_Power + v.data.extPvMeter[0].p).toString() + 'W / ' +
-                           Math.round(v.data.calculated.pvSouthEnergyDaily + v.data.extPvMeter[0].de1).toString() + 'Wh' ;
-            } else {
-                pv.value = Math.round(v.data.inverterExtension.string1_Power).toString() + 'W / ' +
-                Math.round(v.data.calculated.pvSouthEnergyDaily).toString() + 'Wh' ;
+                const pv = {
+                    key: 'PV',
+                    value: (ppv !== null ? sprintf('%.0fW', ppv) : '?W') + ' / ' +
+                           (epv !== null ? sprintf('%.02fkWh', epv / 1000) : '?kWh')
+                };
+                const pvS = {
+                    key: 'PV-Süd',
+                    value: (ps !== null ? sprintf('%.0fW', ps) : '?W') + ' / ' +
+                           (es !== null ? sprintf('%.02fkWh', es / 1000) : '?kWh') + '(' +
+                           (esSite !== null ? sprintf('%.02fkWh', esSite / 1000) : '?kWh') + ')'
+                };
+                const pvEW = {
+                    key: 'PV-Ost/West',
+                    value: (pew !== null ? sprintf('%.0fW', pew) : '?W') + ' / ' +
+                           (eew !== null ? sprintf('%.02fkWh', eew / 1000) : '?kWh'),
+                    br: true
+                };
+                this.showValues.push(pv, pvS, pvEW);
+            }
+            // second line - grid/battery power/energy overview
+            {
+                const p = this.getValue(v.data.meter.activePower);
+                const eIn = this.getValue(v.data.calculated.eInDaily);
+                const eOut = this.getValue(v.data.calculated.eOutDaily);
+
+                const gridPower = {
+                    key: 'P-Netz',
+                    value: (p !== null ? sprintf('%.0fW', p) : '?W')
+                };
+                const gridEnergyDay = {
+                    key: 'E(tag)',
+                    value: 'in=' + (eIn !== null ? sprintf('%.01fkWh', eIn / 1000) : '?kWh') + ' / ' +
+                           'out=' + (eOut !== null ? sprintf('%.01fkWh', eOut / 1000) : '?kWh')
+                };
+
+                const cap = this.getValue(v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100);
+                const pct = this.getValue(v.data.storage.chargeLevelInPercent);
+                const state = v.data.storage.chargeState;
+
+                const battery = {
+                    key: 'Speicher',
+                    value: (pct !== null ? sprintf('%.0f%%', pct) : '?%') + ' / ' +
+                           (cap !== null ? sprintf('%.02fkWh', cap / 1000) : '?kWh') + ' (' + state + ')',
+                    br: n ? true : false
+                };
+                this.showValues.push(gridPower, gridEnergyDay, battery);
             }
 
-            const battery = {
-                key: 'Speicher',
-                value: v.data.storage.chargeLevelInPercent + '% / ' +
-                    (v.data.nameplate.nominalStorageEnergy * v.data.storage.chargeLevelInPercent / 100) + 'Wh' +
-                    ' (' + v.data.storage.chargeState + ')',
-                br: false
-            };
-            this.showValues.push(battery);
-
             if (n) {
-                battery.br = true;
-                const hp = {
-                    key: 'Wärmepumpe',
-                    value: ''
-                };
                 let nv: Nibe1155Value;
                 nv = n.values[43136]; const compressorFrequency = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43141]; const compressorInPower   = nv && nv.valueAt ? nv.value : null;
@@ -163,23 +199,61 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 nv = n.values[43084]; const electricHeaterPower = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[40017]; const condenserOutTemp    = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[40071]; const supplyTemp          = nv && nv.valueAt ? nv.value : null;
-                nv = n.values[40008]; const supplyS1Temp        = nv && nv.valueAt ? nv.value : null;
-
+                nv = n.values[40008]; const supplyFeedTemp   = nv && nv.valueAt ? nv.value : null;
+                nv = n.values[40012]; const supplyReturnTemp    = nv && nv.valueAt ? nv.value : null;
                 const p = (electricHeaterPower !== null ? electricHeaterPower : 0) + (compressorInPower !== null ? compressorInPower : 0);
-                hp.value += 'K(' +
-                                (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') +
-                                '/' + (supplyS1Temp !== null ? sprintf('%.01f°C', supplyS1Temp) : '?°C') +
-                                '/' + (condenserOutTemp !== null ? sprintf('%.01f°C', condenserOutTemp) : '?°C') +
-                            '), Puffer(' +
-                                (supplyTemp !== null ? sprintf('%.01f°C', supplyTemp) : '?°C') +
-                                '/' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?%') +
-                            '), Sole(' + 
-                                (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?') +
-                                '/' + (brineInTemp !== null ? sprintf('%.01f°C', brineInTemp) : '?°C') +
-                                '/' + (brineOutTemp !== null ? sprintf('%.01f°C', brineOutTemp) : '?°C') +
-                            '), P=' + sprintf('%.0fW', p);
 
-                this.showValues.push(hp);
+                const heating1 = {
+                    key: 'P-Heizung',
+                    value: sprintf('%.0fW', p)
+                };
+                const heating2 = {
+                    key: 't-Puffer',
+                    value: (supplyTemp !== null ? sprintf('%.01f°C', supplyTemp) : '?°C'),
+                    br: true
+                };
+                this.showValues.push(heating1, heating2);
+                if (brinePumpSpeed > 0) {
+                    heating2.br = false;
+                    const brine = {
+                        key: 't-Sole',
+                        value: 'in=' + (brineInTemp !== null ? sprintf('%.01f°C', brineInTemp) : '?°C') + ' / ' +
+                               'out=' + (brineOutTemp !== null ? sprintf('%.01f°C', brineOutTemp) : '?°C'),
+                        br: true
+                    };
+                    this.showValues.push(brine);
+                }
+
+                if (compressorFrequency === 0 && supplyPumpSpeed === 0 && brinePumpSpeed === 0) {
+                    const heatPump1 = {
+                        key: 'W-Pumpe',
+                        value: 'Aus'
+                    };
+                    this.showValues.push(heatPump1);
+                } else {
+                    const heatPump1 = {
+                        key: 'W-Pumpe',
+                        value: 'f=' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') + ' / ' +
+                            'VL=' + (supplyFeedTemp !== null ? sprintf('%.01f°C', supplyFeedTemp) : '?°C') + ' / ' +
+                            'RL=' + (supplyReturnTemp !== null ? sprintf('%.01f°C', supplyReturnTemp) : '?°C'),
+                    };
+                    const heatPump2 = {
+                        key: 'Pumpen',
+                        value: 'Puffer=' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?%') + ' / ' +
+                            'Sole=' + (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?'),
+                        br: true
+                    };
+                    this.showValues.push(heatPump1, heatPump2);
+                    if (condenserOutTemp > 55.0) {
+                        heatPump2.br = false;
+                        const heatPump3 = {
+                            key: 'Kond.',
+                            value: sprintf('t=%.01f°C', condenserOutTemp),
+                            br: true
+                        };
+                        this.showValues.push(heatPump3);
+                    }
+                }
             }
         }
 

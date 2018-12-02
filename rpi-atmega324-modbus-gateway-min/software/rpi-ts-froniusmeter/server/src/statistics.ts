@@ -39,7 +39,10 @@ export class Statistics {
         { id: 'e-pv-s', unit: 'Wh', label: 'E-PV_Süd/Wh', hideMin: true, hideAvg: true },
         { id: 'e-pv-ew', unit: 'Wh', label: 'E-PV_Ost_West/Wh', hideMin: true, hideAvg: true },
         { id: 'e-site', unit: 'Wh', label: 'E-Fronius-Site/Wh', hideMin: true, hideAvg: true },
-        { id: 'e-site-daily', unit: 'Wh', label: 'E(tag)-Fronius-Site/Wh', hideMin: true, hideAvg: true }
+        { id: 'e-site-daily', unit: 'Wh', label: 'E(tag)-Fronius-Site/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-in-daily', unit: 'Wh', label: 'E-in(tag)/Wh', hideMin: true, hideAvg: true },
+        { id: 'e-out-daily', unit: 'Wh', label: 'E-out(tag)/Wh', hideMin: true, hideAvg: true }
+
     ];
 
     public static get Instance (): Statistics {
@@ -307,6 +310,8 @@ class StatisticsRecordFactory extends StatisticsRecord {
                 case 'e-pv-ew':         this.handleValue(v, this._valueCount, r.pvEastWestEnergy); break;
                 case 'e-site':          this.handleValue(v, this._valueCount, r.froniusEnergy); break;
                 case 'e-site-daily':    this.handleValue(v, this._valueCount, r.froniusEnergyDaily); break;
+                case 'e-in-daily':      this.handleValue(v, this._valueCount, r.eInDaily); break;
+                case 'e-out-daily':     this.handleValue(v, this._valueCount, r.eOutDaily); break;
                 default: debug.warn('unsupported id %s', h.id); break;
             }
         }
@@ -400,6 +405,10 @@ class StatisticsRecordFactory extends StatisticsRecord {
                     }
                     case 'e-out': case 'e-in': {
                         s += this.formatLineFragment(h, 1, v);
+                        break;
+                    }
+                    case 'e-in-daily': case 'e-out-daily': {
+                        s += this.formatLineFragment(h, 0, v);
                         break;
                     }
                     default: debug.warn('unsupported id %s', h.id); break;

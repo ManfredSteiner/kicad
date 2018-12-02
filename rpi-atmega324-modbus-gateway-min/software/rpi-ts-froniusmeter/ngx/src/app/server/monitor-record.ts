@@ -8,6 +8,8 @@ export interface ICalculated {
     pvSouthEnergyDaily: number;
     saiaDe1Offset: number;
     froniusSiteDailyOffset: number;
+    eOutDaily: number;
+    eInDaily: number;
 }
 
 export interface IHeatPumpValue {
@@ -249,10 +251,18 @@ export class MonitorRecord {
         if (this._data.gridmeter) {
             return this._data.gridmeter.activeEnergy;
         } else if (this._data.meter) {
-            return this._data.meter.totalImportedEnergy;;
+            return this._data.meter.totalImportedEnergy;
         } else {
             return Number.NaN;
         }
+    }
+
+    public get eOutDaily (): number {
+        return this._data.calculated.eOutDaily;
+    }
+
+    public get eInDaily (): number {
+        return this._data.calculated.eInDaily;
     }
 
     public get heatpump (): IHeatPump {
@@ -281,6 +291,8 @@ export class MonitorRecord {
             froniusLoadActivePower:     this.normaliseUnit(this.froniusLoadActivePower, 2, 'W'),
             eIn:                        this.normaliseUnit(this.eIn, 2, 'Wh'),
             eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh'),
+            eInDaily:                   this.normaliseUnit(this.eInDaily, 2, 'Wh'),
+            eOutDaily:                  this.normaliseUnit(this.eOutDaily, 2, 'Wh')
         };
         return rv;
     }

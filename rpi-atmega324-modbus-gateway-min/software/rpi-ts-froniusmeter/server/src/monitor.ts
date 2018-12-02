@@ -28,6 +28,7 @@ interface IMonitorConfig {
 interface ITempFileRecord {
     createdAt: Date;
     pvSouthEnergyDaily: number;
+    eDaily: { eIn: number, eOut: number, eInOffset: number, eOutOffset: number };
     monitorRecord: any;
 }
 
@@ -51,6 +52,7 @@ export class Monitor {
     private _lastFroniusPoll: Date;
     private _lastCaclulated: ICalculated;
     private _pvSouthEnergyDaily = 0;
+    private _eDaily: { eIn: number, eOut: number, eInOffset: number, eOutOffset: number } = { eIn: 0, eOut: 0, eInOffset: 0, eOutOffset: 0 };
     private _lastTempCnt = 0;
     private _debugLastTime: string;
 
@@ -60,7 +62,7 @@ export class Monitor {
         if (!this._config.periodMillis) { this._config.periodMillis = 1000; }
         if (!this._config.froniusPeriodMillis) { this._config.froniusPeriodMillis = 1000; }
         this._lastFroniusPoll = null;
-        this._lastCaclulated = { pvSouthEnergyDaily: 0, saiaDe1Offset: 0, froniusSiteDailyOffset: 0 };
+        this._lastCaclulated = { pvSouthEnergyDaily: 0, saiaDe1Offset: 0, froniusSiteDailyOffset: 0, eInDaily: 0, eOutDaily: 0 };
     }
 
     public async start () {
@@ -92,6 +94,10 @@ export class Monitor {
             } else {
                 debug.info('temporary file found, set pvSouthEnergyDaily to ' + found.pvSouthEnergyDaily);
                 this._pvSouthEnergyDaily = found.pvSouthEnergyDaily;
+                if (found.eDaily) {
+                    debug.info('temporary file found, set eDaily to %o' + found.eDaily);
+                    this._eDaily = found.eDaily;
+                }
             }
         }
 
@@ -229,8 +235,16 @@ export class Monitor {
                 const rv = await Promise.all([ PiTechnik.instance.getData() ]);
                 saiaMeter = rv[0];
             } else {
+                const oldMeter = this._symo.meter;
                 const rv = await Promise.all([ PiTechnik.instance.getData(), this._symo.readMeter() ]);
                 saiaMeter = rv[0];
+                const newMeter = rv[1];
+                if (newMeter.createdAt.getDay() !== oldMeter.createdAt.getDay()) {
+                    this._eDaily.eInOffset = newMeter.totalImportedEnergy;
+                    this._eDaily.eOutOffset =  newMeter.totalExportedEnergy;
+                }
+                this._eDaily.eIn = newMeter.totalImportedEnergy - this._eDaily.eInOffset;
+                this._eDaily.eOut = newMeter.totalExportedEnergy - this._eDaily.eOutOffset;
             }
 
 
@@ -244,7 +258,9 @@ export class Monitor {
                 calculated: {
                     pvSouthEnergyDaily: this._pvSouthEnergyDaily,
                     saiaDe1Offset: this._lastCaclulated.saiaDe1Offset,
-                    froniusSiteDailyOffset: this._lastCaclulated.froniusSiteDailyOffset
+                    froniusSiteDailyOffset: this._lastCaclulated.froniusSiteDailyOffset,
+                    eInDaily: this._eDaily.eIn,
+                    eOutDaily: this._eDaily.eOut
                 }
             };
             if (dayHasChanged) {
@@ -307,6 +323,12 @@ export class Monitor {
             const t: ITempFileRecord = {
                 createdAt: new Date(),
                 pvSouthEnergyDaily: Math.round(this._pvSouthEnergyDaily * 100) / 100,
+                eDaily: {
+                    eIn: Math.round(this._eDaily.eIn * 1000) / 1000,
+                    eOut: Math.round(this._eDaily.eOut * 1000) / 1000,
+                    eInOffset: Math.round(this._eDaily.eInOffset * 1000) / 1000,
+                    eOutOffset: Math.round(this._eDaily.eOutOffset * 1000) / 1000
+                },
                 monitorRecord: r.toHumanReadableObject()
             };
             const tOut = JSON.stringify(t, null, 2) + '\n';
