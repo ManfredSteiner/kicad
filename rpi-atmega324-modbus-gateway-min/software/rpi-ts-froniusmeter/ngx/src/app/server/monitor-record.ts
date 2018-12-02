@@ -236,11 +236,23 @@ export class MonitorRecord {
 
 
     public get eOut (): number {
-        return this._data.gridmeter ? this._data.gridmeter.activeFeedEnergy : Number.NaN;
+        if (this._data.gridmeter) {
+            return this._data.gridmeter.activeFeedEnergy;
+        } else if (this._data.meter) {
+            return this._data.meter.totalExportedEnergy;
+        } else {
+            return Number.NaN;
+        }
     }
 
     public get eIn (): number {
-        return this._data.gridmeter ? this._data.gridmeter.activeEnergy : Number.NaN;
+        if (this._data.gridmeter) {
+            return this._data.gridmeter.activeEnergy;
+        } else if (this._data.meter) {
+            return this._data.meter.totalImportedEnergy;;
+        } else {
+            return Number.NaN;
+        }
     }
 
     public get heatpump (): IHeatPump {
