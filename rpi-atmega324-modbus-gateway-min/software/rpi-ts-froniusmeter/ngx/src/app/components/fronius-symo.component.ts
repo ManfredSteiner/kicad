@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
 import { ConfigService } from '../services/config.service';
-import * as symo from '../server/fronius-symo-values';
+import * as symo from '../data/common/fronius-symo/fronius-symo-values';
 import { Subscription } from 'rxjs';
 
 @Component({

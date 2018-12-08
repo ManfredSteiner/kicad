@@ -1,4 +1,4 @@
-export const VERSION = '0.20.0';
+export const VERSION = '0.21.0';
 
 import * as nconf from 'nconf';
 import * as fs from 'fs';
@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as git from './utils/git';
 
 process.on('unhandledRejection', (reason, p) => {
-    debugger;
+    // debugger;
     const now = new Date();
     console.log(now.toLocaleDateString() + '/' + now.toLocaleTimeString() + ': unhandled rejection at: Promise', p, 'reason:', reason);
 });
@@ -69,6 +69,7 @@ import { sprintf } from 'sprintf-js';
 import { Server } from './server';
 import { PiTechnik } from './devices/pi-technik';
 import { Nibe1155 } from './devices/nibe1155';
+import { HotWaterController } from './devices/hot-water-controller';
 import { ModbusDevice } from './devices/modbus-device';
 import { ModbusAscii } from './modbus/modbus-ascii';
 import { ModbusTcp } from './modbus/modbus-tcp';
@@ -84,6 +85,7 @@ let modbusTcp: ModbusTcp;
 let froniusSymo: FroniusSymo;
 let piTechnik: PiTechnik;
 let nibe1155: Nibe1155;
+let hwc: HotWaterController;
 let monitor: Monitor;
 
 doStartup();
@@ -101,6 +103,7 @@ async function doStartup () {
         monitor = Monitor.Instance;
         piTechnik = await PiTechnik.initInstance(nconf.get('pi-technik'));
         nibe1155 = await Nibe1155.initInstance(nconf.get('nibe1155'));
+        hwc = await HotWaterController.initInstance(nconf.get('hot-water-controller'));
 
         const fm = new FroniusMeter(modbusSerial, 1);
         fm.on('update', appendToHistoryFile);
@@ -110,6 +113,7 @@ async function doStartup () {
         await startupParallel();
         await startupServer();
         await nibe1155.start();
+        await hwc.start();
         await monitor.start();
         doSomeTests();
         process.on('SIGINT', () => {

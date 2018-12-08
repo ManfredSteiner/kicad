@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, HostListener, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { BaseChartDirective } from 'ng4-charts';
 import { DataService } from '../services/data.service';
-import { IMonitorRecordData, MonitorRecord } from '../server/monitor-record';
-import { INibe1155Value, Nibe1155Value } from '../server/nibe1155-values';
+import { IMonitorRecordData, MonitorRecord } from '../data/common/monitor-record';
+import { INibe1155Value, Nibe1155Value } from '../data/common/nibe1155/nibe1155-values';
 import { sprintf } from 'sprintf-js';
 
 @Component({
@@ -15,6 +15,8 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
     @ViewChild(BaseChartDirective)
     public chart: BaseChartDirective;
+
+    @ViewChild('container') container: ElementRef;
 
     public chartOptions: any = {
         scaleShowVerticalLines: false,
@@ -45,6 +47,8 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
     public showValues: { key: string, value: string, br?: boolean } [] = [];
 
     private _monitorValuesSubsciption: Subscription;
+    // public innerWidth: any;
+    // public innerHeight: any;
 
     constructor (private dataService: DataService) {
         for (let i = 0; i < 60; i++) {
@@ -60,12 +64,24 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         }
         this._monitorValuesSubsciption =
             this.dataService.monitorObservable.subscribe((value) => this.handleMonitorValues(value));
+        // this.innerWidth = this.container.nativeElement.offsetWidth;
+        // this.innerHeight = this.container.nativeElement.offsetHeight;
+        // console.log('window: ' + this.innerWidth + ' x ' + this.innerHeight);
     }
 
     public ngOnDestroy() {
         this._monitorValuesSubsciption.unsubscribe();
         this._monitorValuesSubsciption = null;
     }
+
+    // @HostListener('window:resize', ['$event'])
+    // onResize (event) {
+    //     this.innerWidth = this.container.nativeElement.offsetWidth;
+    //     this.innerHeight = this.container.nativeElement.offsetHeight;
+    //     console.log('window: ', this.container.nativeElement);
+    // }
+
+
 
     public chartClicked(e: any): void {
         // console.log(e);
@@ -81,6 +97,24 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
             return x;
         }
         return null;
+    }
+
+    private checkWidth (...elements: IShowValueItem []): IShowValueItem [] {
+        try {
+            let w = 0;
+            for (const e of elements) {
+                w += e.width + 2.5 * 16; // 2em rigth + 0.em left
+            }
+            if (w > this.container.nativeElement.offsetWidth) {
+                for (const e of elements) {
+                    e.br = true;
+                }
+            }
+            return elements;
+        } catch (err) {
+            console.log(err);
+            return elements;
+        }
     }
 
     private handleMonitorValues (v: MonitorRecord) {
@@ -124,6 +158,15 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
         // this.showValues.push({ key: 'string2_P', value: invExt['string2_Power'] });
         // this.showValues.push({ key: 'dcPower', value: inv['dcPower'] });
         if (v) {
+            // {
+            //     const size: IShowValueItem = {
+            //         key: 'Size',
+            //         width: 120,
+            //         value: this.container.nativeElement.offsetWidth,
+            //         br: true
+            //     };
+            //     this.showValues.push(size);
+            // }
             // first line - photovoltaik overview
             {
                 const ps = this.getValue(v.data.inverterExtension.string1_Power);
@@ -140,24 +183,27 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                     epv = es + eew;
                 }
 
-                const pv = {
+                const pv: IShowValueItem = {
                     key: 'PV',
+                    width: 140,
                     value: (ppv !== null ? sprintf('%.0fW', ppv) : '?W') + ' / ' +
                            (epv !== null ? sprintf('%.02fkWh', epv / 1000) : '?kWh')
                 };
-                const pvS = {
+                const pvS: IShowValueItem = {
                     key: 'PV-Süd',
+                    width: 250,
                     value: (ps !== null ? sprintf('%.0fW', ps) : '?W') + ' / ' +
                            (es !== null ? sprintf('%.02fkWh', es / 1000) : '?kWh') + '(' +
                            (esSite !== null ? sprintf('%.02fkWh', esSite / 1000) : '?kWh') + ')'
                 };
-                const pvEW = {
+                const pvEW: IShowValueItem = {
                     key: 'PV-Ost/West',
+                    width: 220,
                     value: (pew !== null ? sprintf('%.0fW', pew) : '?W') + ' / ' +
                            (eew !== null ? sprintf('%.02fkWh', eew / 1000) : '?kWh'),
                     br: true
                 };
-                this.showValues.push(pv, pvS, pvEW);
+                this.showValues = this.showValues.concat(this.checkWidth(pv, pvS, pvEW));
             }
             // second line - grid/battery power/energy overview
             {
@@ -165,12 +211,14 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 const eIn = this.getValue(v.data.calculated.eInDaily);
                 const eOut = this.getValue(v.data.calculated.eOutDaily);
 
-                const gridPower = {
+                const gridPower: IShowValueItem = {
                     key: 'P-Netz',
+                    width: 110,
                     value: (p !== null ? sprintf('%.0fW', p) : '?W')
                 };
-                const gridEnergyDay = {
+                const gridEnergyDay: IShowValueItem = {
                     key: 'E(tag)',
+                    width: 250,
                     value: 'in=' + (eIn !== null ? sprintf('%.01fkWh', eIn / 1000) : '?kWh') + ' / ' +
                            'out=' + (eOut !== null ? sprintf('%.01fkWh', eOut / 1000) : '?kWh')
                 };
@@ -179,16 +227,18 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 const pct = this.getValue(v.data.storage.chargeLevelInPercent);
                 const state = v.data.storage.chargeState;
 
-                const battery = {
+                const battery: IShowValueItem = {
                     key: 'Speicher',
+                    width: 280,
                     value: (pct !== null ? sprintf('%.0f%%', pct) : '?%') + ' / ' +
                            (cap !== null ? sprintf('%.02fkWh', cap / 1000) : '?kWh') + ' (' + state + ')',
                     br: n ? true : false
                 };
-                this.showValues.push(gridPower, gridEnergyDay, battery);
+                this.showValues = this.showValues.concat(this.checkWidth(gridPower, gridEnergyDay, battery));
             }
 
             if (n) {
+                const pBoiler = v.boilerPower;
                 let nv: Nibe1155Value;
                 nv = n.values[43136]; const compressorFrequency = nv && nv.valueAt ? nv.value : null;
                 nv = n.values[43141]; const compressorInPower   = nv && nv.valueAt ? nv.value : null;
@@ -203,55 +253,69 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
                 nv = n.values[40012]; const supplyReturnTemp    = nv && nv.valueAt ? nv.value : null;
                 const p = (electricHeaterPower !== null ? electricHeaterPower : 0) + (compressorInPower !== null ? compressorInPower : 0);
 
-                const heating1 = {
+                const heating1: IShowValueItem = {
+                    key: 'P-Boiler',
+                    width: 100,
+                    value: sprintf('%.0fW', pBoiler)
+                };
+                const heating2: IShowValueItem = {
                     key: 'P-Heizung',
+                    width: 140,
                     value: sprintf('%.0fW', p)
                 };
-                const heating2 = {
+                const heating3: IShowValueItem = {
                     key: 't-Puffer',
-                    value: (supplyTemp !== null ? sprintf('%.01f°C', supplyTemp) : '?°C'),
-                    br: true
+                    width: 130,
+                    value: (supplyTemp !== null ? sprintf('%.01f°C', supplyTemp) : '?°C')
                 };
-                this.showValues.push(heating1, heating2);
                 if (brinePumpSpeed > 0) {
-                    heating2.br = false;
-                    const brine = {
+                    const brine: IShowValueItem = {
                         key: 't-Sole',
+                        width: 220,
                         value: 'in=' + (brineInTemp !== null ? sprintf('%.01f°C', brineInTemp) : '?°C') + ' / ' +
                                'out=' + (brineOutTemp !== null ? sprintf('%.01f°C', brineOutTemp) : '?°C'),
                         br: true
                     };
-                    this.showValues.push(brine);
+                    this.showValues = this.showValues.concat(this.checkWidth(heating1, heating2, heating3, brine));
+
+                } else {
+                    heating3.br = true;
+                    this.showValues = this.showValues.concat(this.checkWidth(heating1, heating2, heating3));
                 }
 
                 if (compressorFrequency === 0 && supplyPumpSpeed === 0 && brinePumpSpeed === 0) {
-                    const heatPump1 = {
+                    const heatPump1: IShowValueItem = {
                         key: 'W-Pumpe',
-                        value: 'Aus'
+                        width: 100,
+                        value: 'Aus',
+                        br: true
                     };
                     this.showValues.push(heatPump1);
                 } else {
-                    const heatPump1 = {
+                    const heatPump1: IShowValueItem = {
                         key: 'W-Pumpe',
+                        width: 350,
                         value: 'f=' + (compressorFrequency !== null ? sprintf('%.01fHz', compressorFrequency) : '?Hz') + ' / ' +
                             'VL=' + (supplyFeedTemp !== null ? sprintf('%.01f°C', supplyFeedTemp) : '?°C') + ' / ' +
                             'RL=' + (supplyReturnTemp !== null ? sprintf('%.01f°C', supplyReturnTemp) : '?°C'),
                     };
-                    const heatPump2 = {
+                    const heatPump2: IShowValueItem = {
                         key: 'Pumpen',
+                        width: 250,
                         value: 'Puffer=' + (supplyPumpSpeed !== null ? sprintf('%d%%', supplyPumpSpeed) : '?%') + ' / ' +
                             'Sole=' + (brinePumpSpeed !== null ? sprintf('%d%%', brinePumpSpeed) : '?'),
-                        br: true
                     };
-                    this.showValues.push(heatPump1, heatPump2);
                     if (condenserOutTemp > 55.0) {
-                        heatPump2.br = false;
-                        const heatPump3 = {
+                        const heatPump3: IShowValueItem = {
                             key: 'Kond.',
+                            width: 120,
                             value: sprintf('t=%.01f°C', condenserOutTemp),
                             br: true
                         };
-                        this.showValues.push(heatPump3);
+                        this.showValues = this.showValues.concat(this.checkWidth(heatPump1, heatPump2, heatPump3));
+                    } else {
+                        heatPump2.br = true;
+                        this.showValues = this.showValues.concat(this.checkWidth(heatPump1, heatPump2));
                     }
                 }
             }
@@ -259,6 +323,13 @@ export class OverviewChartComponent implements OnInit, OnDestroy {
 
     }
 
+}
+
+interface IShowValueItem {
+    key: string;
+    value: string;
+    width: number;
+    br?: boolean;
 }
 
 interface IBarChartData {

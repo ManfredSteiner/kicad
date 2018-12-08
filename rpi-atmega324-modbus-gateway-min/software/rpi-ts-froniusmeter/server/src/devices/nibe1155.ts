@@ -4,8 +4,8 @@ const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:Nibe1155');
 
 import * as http from 'http';
 
-import { INibe1155Values, Nibe1155Value } from '../client/nibe1155-values';
-import { IHeatpumpMode } from '../client/monitor-record';
+import { INibe1155Values, Nibe1155Value } from '../data/common/nibe1155//nibe1155-values';
+import { IHeatpumpMode } from '../data/common/monitor-record';
 
 
 interface INibe1155Config {

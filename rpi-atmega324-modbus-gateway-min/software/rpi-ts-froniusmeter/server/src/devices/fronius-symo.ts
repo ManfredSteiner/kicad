@@ -4,7 +4,7 @@ import { ModbusTcpDevice } from './modbus-tcp-device';
 import { IFroniusRegister, FroniusRegister, ICommon, Common, IInverter, Inverter,
          INameplate, Nameplate, ISetting, Setting, IStatus, Status, IControl, Control,
          IStorage, Storage, IInverterExtension, InverterExtension, IStringCombiner, StringCombiner,
-         IMeter, Meter } from '../client/fronius-symo-values';
+         IMeter, Meter } from '../data/common/fronius-symo/fronius-symo-values';
 
 import * as debugsx from 'debug-sx';
 import { ModbusDevice } from './modbus-device';

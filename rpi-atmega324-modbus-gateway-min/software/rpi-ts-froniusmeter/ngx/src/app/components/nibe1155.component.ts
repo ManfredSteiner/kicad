@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
 import { ConfigService } from '../services/config.service';
-import * as nibe1155 from '../server/nibe1155-values';
+import * as nibe1155 from '../data/common/nibe1155/nibe1155-values';
 import { Subscription } from 'rxjs';
 import { sprintf } from 'sprintf-js';
-import { MonitorRecord } from '../server/monitor-record';
+import { MonitorRecord } from '../data/common/monitor-record';
 
 @Component({
     selector: 'app-nibe1155',

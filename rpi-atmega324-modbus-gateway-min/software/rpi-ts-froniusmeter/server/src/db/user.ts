@@ -1,6 +1,6 @@
 import * as mongodb from 'mongodb';
 
-import { IAuthUser, AuthUser } from '../client/auth-user';
+import { IAuthUser, AuthUser } from '../data/common/auth-user';
 import * as password from '../utils/password';
 
 export interface IUser {

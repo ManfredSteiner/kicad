@@ -83,6 +83,7 @@ export class Server {
         this._express.use('/ngx', express.static(path.join(__dirname, '../../ngx/dist')));
         this._express.use('/assets', express.static(path.join(__dirname, '../../ngx/dist/assets')));
         // this._express.use('/res', RouterRes.routerInstance);
+        this._express.get('/boiler', (req, res, next) => this.handleBoiler(req, res, next));
 
         this._express.get('/*', (req, res, next) => this.handleGet(req, res, next));
         this._express.use((req, res, next) => Auth.Instance.authorizeRequest(req, res, next));
@@ -162,6 +163,35 @@ export class Server {
         next();
     }
 
+    private async handleBoiler (req: express.Request, res: express.Response,  next: express.NextFunction) {
+        try {
+            const getPath = '/data/monitor' + (req.query.setpoint !== undefined ? ('?setpoint=' + +req.query.setpoint) : '');
+            const options = {
+                // agent: this._keepAliveAgent,
+                host: '192.168.1.5',
+                port: 80,
+                path: getPath,
+                method: 'GET',
+                timeout: 500
+            };
+            debug.info('%o', options);
+            http.get(options, (response) => {
+                let data = '';
+                response.on(data, (chunk) => {
+                    data += chunk;
+                });
+                response.on('end', () => {
+                    debug.info('boiler-response: ' + data);
+                    res.json(JSON.parse(data));
+                });
+                response.on('error', (err) => {
+                    res.status(500).send('ERROR');
+                });
+            });
+        } catch (err) {
+            handleError(err, req, res, next, debug);
+        }
+    }
 
     private async handleGetTest (req: IAuthorizedRequest, res: express.Response, next: express.NextFunction) {
         try {

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { sprintf } from 'sprintf-js';
 import * as nconf from 'nconf';
-import { MonitorRecord } from './client/monitor-record';
+import { MonitorRecord } from './data/common/monitor-record';
 
 interface IStatisticsConfig {
     disabled?: boolean;

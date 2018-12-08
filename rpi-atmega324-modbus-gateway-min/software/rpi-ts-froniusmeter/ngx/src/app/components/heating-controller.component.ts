@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
 import { Subscription } from 'rxjs';
-import { MonitorRecord } from '../server/monitor-record';
+import { MonitorRecord } from '../data/common/monitor-record';
 import { ValidatorElement } from '../directives/validator.directive';
 
 @Component({

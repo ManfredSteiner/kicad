@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as express from 'express';
 
 import { handleError, RouterError, BadRequestError, AuthenticationError } from './router-error';
-import { IHeatpumpMode } from '../client/monitor-record';
+import { IHeatpumpMode } from '../data/common/monitor-record';
 import { Nibe1155 } from '../devices/nibe1155';
 
 

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
-import { IFroniusMeterValues } from '../server/fronius-meter-values';
+import { IFroniusMeterValues } from '../data/common/fronius-meter/fronius-meter-values';
 import { Subscription } from 'rxjs';
 
 @Component({

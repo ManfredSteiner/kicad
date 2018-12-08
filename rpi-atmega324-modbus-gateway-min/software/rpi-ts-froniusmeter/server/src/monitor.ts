@@ -11,10 +11,10 @@ import { FroniusMeter } from './devices/fronius-meter';
 import { FroniusSymo } from './devices/fronius-symo';
 import { PiTechnik } from './devices/pi-technik';
 import { Nibe1155 } from './devices/nibe1155';
-import { MonitorRecord, IMonitorRecordData, ICalculated } from './client/monitor-record';
-import { ISaiaAle3Meter } from './client/saia-ale3-meter';
+import { MonitorRecord, IMonitorRecordData, ICalculated } from './data/common/monitor-record';
+import { ISaiaAle3Meter } from './data/common/saia-ale3-meter/saia-ale3-meter';
 import { Statistics } from './statistics';
-import { INibe1155Values } from './client/nibe1155-values';
+import { HotWaterController } from './devices/hot-water-controller';
 
 interface IMonitorConfig {
     disabled?:            boolean;
@@ -299,6 +299,10 @@ export class Monitor {
                 if (!v || !v.valueAt) { continue; }
                 x.heatpump.simpleValues[id] = { rawValue: v.rawValue, rawValueAt: v.valueAt.getTime() };
 
+            }
+            const hwc = HotWaterController.Instance;
+            if (hwc) {
+                x.hwcMonitorRecord = hwc.lastValidResponse.value;
             }
             this.saveDebugFile(x);
             const r = MonitorRecord.create(x);

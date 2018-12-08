@@ -3,10 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { Observable, Subscriber, TeardownLogic, of } from 'rxjs';
 
-import { IFroniusMeterValues } from '../server/fronius-meter-values';
-import { IMonitorRecordData, MonitorRecord, IHeatpumpMode } from '../server/monitor-record';
-import * as froniusSymo from '../server/fronius-symo-values';
-import * as nibe1155 from '../server/nibe1155-values';
+import { IFroniusMeterValues } from '../data/common/fronius-meter/fronius-meter-values';
+import { IMonitorRecordData, MonitorRecord, IHeatpumpMode } from '../data/common/monitor-record';
+import * as froniusSymo from '../data/common/fronius-symo/fronius-symo-values';
+import * as nibe1155 from '../data/common/nibe1155/nibe1155-values';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {

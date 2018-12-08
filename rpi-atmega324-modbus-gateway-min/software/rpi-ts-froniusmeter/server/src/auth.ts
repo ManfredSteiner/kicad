@@ -6,7 +6,7 @@ import * as jwt from 'jsonwebtoken';
 import * as nconf from 'nconf';
 
 import { handleError, RouterError, BadRequestError, AuthenticationError, NotFoundError } from './routers/router-error';
-import { UserLogin, IUserLogin } from './client/user-login';
+import { UserLogin, IUserLogin } from './data/common/user-login';
 import { User, IUser } from './db/user';
 import { Database } from './db/database';
 import { IRequestWithUser, IRequestUser } from './server';

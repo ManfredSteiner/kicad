@@ -5,8 +5,8 @@ import * as express from 'express';
 
 import { handleError, RouterError, BadRequestError, AuthenticationError } from './router-error';
 import { FroniusMeter } from '../devices/fronius-meter';
-import { IFroniusSymoValues } from '../client/fronius-symo-values';
-import { IMonitorRecordRawData } from '../client/monitor-record';
+import { IFroniusSymoValues } from '../data/common/fronius-symo/fronius-symo-values';
+import { IMonitorRecordRawData } from '../data/common/monitor-record';
 import { Monitor } from '../monitor';
 
 
@@ -14,7 +14,7 @@ import { Monitor } from '../monitor';
 import * as debugsx from 'debug-sx';
 import { FroniusSymo } from '../devices/fronius-symo';
 import { Nibe1155 } from '../devices/nibe1155';
-import { INibe1155Values, Nibe1155Value } from '../client/nibe1155-values';
+import { INibe1155Values, Nibe1155Value } from '../data/common/nibe1155/nibe1155-values';
 const debug: debugsx.IFullLogger = debugsx.createFullLogger('routers:RouterData');
 
 export class RouterData {

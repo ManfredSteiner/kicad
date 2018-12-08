@@ -1,7 +1,7 @@
 import * as http from 'http';
 
 import { ModbusDevice } from './modbus-device';
-import { ISaiaAle3Meter } from '../client/saia-ale3-meter';
+import { ISaiaAle3Meter } from '../data/common/saia-ale3-meter/saia-ale3-meter';
 
 import * as debugsx from 'debug-sx';
 const debug: debugsx.IDefaultLogger = debugsx.createDefaultLogger('devices:PiTechnik');

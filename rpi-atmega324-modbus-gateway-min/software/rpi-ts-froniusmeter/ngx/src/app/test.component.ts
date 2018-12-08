@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { DataService } from './services/data.service';
-import { IFroniusMeterValues } from './server/fronius-meter-values';
+import { IFroniusMeterValues } from './data/common/fronius-meter/fronius-meter-values';
 import { BaseChartDirective } from 'ng4-charts';
 
 @Component({

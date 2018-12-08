@@ -1,8 +1,10 @@
+import { CommonLogger } from '../common-logger';
 import { FroniusRegister, IFroniusRegister, IInverter, Inverter, IInverterExtension, InverterExtension,
-         IStorage, Storage, IMeter, Meter, INameplate, Nameplate } from './fronius-symo-values';
-import { IFroniusMeterValues } from './fronius-meter-values';
-import { ISaiaAle3Meter } from './saia-ale3-meter';
-import { INibe1155Controller, INibe1155Value, INibe1155SimpleValue } from './nibe1155-values';
+         IStorage, Storage, IMeter, Meter, INameplate, Nameplate } from './fronius-symo/fronius-symo-values';
+import { IFroniusMeterValues } from './fronius-meter/fronius-meter-values';
+import { ISaiaAle3Meter } from './saia-ale3-meter/saia-ale3-meter';
+import { INibe1155Controller, INibe1155Value, INibe1155SimpleValue } from './nibe1155/nibe1155-values';
+import * as hwc from './hwc/monitor-record';
 
 export interface ICalculated {
     pvSouthEnergyDaily: number;
@@ -49,6 +51,7 @@ export interface IMonitorRecordRawData {
     extPvMeter?:       ISaiaAle3Meter [];
     heatpump?:         IHeatPump;
     calculated?:       ICalculated;
+    hwcMonitorRecord?: hwc.IMonitorRecord;
 }
 
 export interface IMonitorRecordData {
@@ -62,6 +65,7 @@ export interface IMonitorRecordData {
     extPvMeter?:       ISaiaAle3Meter [];
     heatpump?:         IHeatPump;
     calculated?:       ICalculated;
+    hwcMonitorRecord?: hwc.MonitorRecord;
 }
 
 export class MonitorRecord {
@@ -96,6 +100,14 @@ export class MonitorRecord {
         if (data.heatpump) {
             d.heatpump = data.heatpump;
         }
+        if (data.hwcMonitorRecord) {
+            try {
+                d.hwcMonitorRecord = new hwc.MonitorRecord(data.hwcMonitorRecord);
+            } catch (err) {
+                CommonLogger.warn('parsing HotWaterController MonitorRecord fails', err);
+            }
+        }
+
         return new MonitorRecord(d);
     }
 
@@ -140,6 +152,9 @@ export class MonitorRecord {
         }
         if (this._data.heatpump) {
             rv.heatpump = this._data.heatpump;
+        }
+        if (this._data.hwcMonitorRecord) {
+            rv.hwcMonitorRecord = this._data.hwcMonitorRecord.toObject();
         }
         return rv;
     }
@@ -269,6 +284,26 @@ export class MonitorRecord {
         return this.data.heatpump;
     }
 
+    public get hwcMonitorRecord (): hwc.MonitorRecord {
+        return this.data.hwcMonitorRecord;
+    }
+
+    public get boilerPower (): number {
+        if (this._data.hwcMonitorRecord) {
+            return this._data.hwcMonitorRecord.powerWatts;
+        } else {
+            return Number.NaN;
+        }
+    }
+
+    public get boilerEnergyDaily (): number {
+        if (this._data.hwcMonitorRecord) {
+            return this._data.hwcMonitorRecord.energyDaily.value;
+        } else {
+            return Number.NaN;
+        }
+    }
+
     public toHumanReadableObject (): Object {
         const rv = {
             gridActivePower:            this.normaliseUnit(this.gridActivePower, 2, 'W'),
@@ -292,7 +327,9 @@ export class MonitorRecord {
             eIn:                        this.normaliseUnit(this.eIn, 2, 'Wh'),
             eOut:                       this.normaliseUnit(this.eOut, 2, 'Wh'),
             eInDaily:                   this.normaliseUnit(this.eInDaily, 2, 'Wh'),
-            eOutDaily:                  this.normaliseUnit(this.eOutDaily, 2, 'Wh')
+            eOutDaily:                  this.normaliseUnit(this.eOutDaily, 2, 'Wh'),
+            boilerPower:                this.normaliseUnit(this.boilerPower, 2, 'W'),
+            boilerEnergyDaily:          this.normaliseUnit(this.boilerEnergyDaily, 0, 'Wh')
         };
         return rv;
     }

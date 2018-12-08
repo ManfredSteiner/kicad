@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
 import { ConfigService } from '../services/config.service';
-import { MonitorRecord, IMonitorRecordData } from '../server/monitor-record';
+import { MonitorRecord, IMonitorRecordData } from '../data/common/monitor-record';
 import { Subscription } from 'rxjs';
 
 @Component({
