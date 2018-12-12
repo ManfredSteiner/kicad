@@ -95,7 +95,8 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
 
         this._inputFrequency = {
-            id: 'idFrequency', type: 'number', key: 'Frequenz/Hz', name: 'frequency', min: fMin, max: fMax, hidden: true, validator: null
+            id: 'idFrequency', type: 'number', key: 'Frequenz/Hz', name: 'frequency',
+            min: fMin, max: fMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputFrequency.validator = new ValidatorElement<number>(30, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -106,7 +107,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputFrequencyMin = {
             id: 'idFrequencyMin', type: 'number', key: 'Frequenz-Min', name: 'frequencyMin',
-            min: fMin, max: fMax, hidden: true, validator: null
+            min: fMin, max: fMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputFrequencyMin.validator = new ValidatorElement<number>(25, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -118,7 +119,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputFrequencyMax = {
             id: 'idFrequencyMax', type: 'number', key: 'Frequenz-Max', name: 'frequencyMax',
-            min: fMin, max: fMax, hidden: true, validator: null
+            min: fMin, max: fMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputFrequencyMax.validator = new ValidatorElement<number>(68, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -130,7 +131,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputTemp = {
             id: 'idTemp', type: 'number', key: 't-Puffer', name: 'temp',
-            min: tempMin, max: tempMax, hidden: true, validator: null
+            min: tempMin, max: tempMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputTemp.validator = new ValidatorElement<number>(50, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -141,7 +142,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputTempMin = {
             id: 'idTempMin', type: 'number', key: 't-Puffer-Min', name: 'tempMin',
-            min: tempMin, max: tempMax, hidden: true, validator: null
+            min: tempMin, max: tempMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputTempMin.validator = new ValidatorElement<number>(20, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -153,7 +154,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputTempMax = {
             id: 'idTempMax', type: 'number', key: 't-Puffer-Max', name: 'tempMax',
-            min: tempMin, max: tempMax, hidden: true, validator: null
+            min: tempMin, max: tempMax, hidden: true, validator: null, pattern: '', mode: ''
         };
         this._inputTempMax.validator = new ValidatorElement<number>(60, null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -165,7 +166,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this._inputPin = {
             id: 'idPin', type: 'password', key: 'PIN', name: 'pin',
-            min: '', max: '', hidden: false, validator: null
+            min: '', max: '', hidden: false, validator: null, pattern: '[0-9]*', mode: 'numeric'
         };
         this._inputPin.validator = new ValidatorElement<string>('', null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -175,7 +176,7 @@ export class HeatingControllerComponent implements OnInit, OnDestroy {
 
         this.inputTest = {
             id: 'idTest', type: 'password', key: 'Test', name: 'test',
-            min: '', max: '', hidden: false, validator: null
+            min: '', max: '', hidden: false, validator: null, pattern: '', mode: ''
         };
         this.inputTest.validator = new ValidatorElement<string>('', null, (e, n, v) => {
             if (Number.isNaN(+v)) { return false; }
@@ -236,5 +237,7 @@ interface IInput {
     min: string | number;
     max: string | number;
     hidden: boolean;
+    pattern: string;
+    mode: string;
     validator: ValidatorElement<any>;
 }

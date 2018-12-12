@@ -132,6 +132,7 @@ export class HotWaterController {
                                 this._getPendingSince = null;
                                 rej(new Error('invalid response'));
                             } else {
+                                r[0].mode = 'power';
                                 const mr = new MonitorRecord(r[0]);
                                 debug.finer('reading successful: %o', r);
                                 this._lastValidResponse = { at: new Date(), value: mr };

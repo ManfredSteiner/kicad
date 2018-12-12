@@ -62,6 +62,21 @@ export abstract class DataRecord<T> {
         }
     }
 
+    static parseEnum<T> (data: any, options: IParseEnumOptions<T>): T {
+        if (!options || !options.attribute) { throw new ParseEnumError('missing options/attribute name'); }
+        if (!data || !data[options.attribute]) { throw new ParseEnumError('missing data/attribute name'); }
+        if (!options.validate && (!data || data[options.attribute] === undefined || data[options.attribute] === null)) { return null; }
+        try {
+            const value = data[options.attribute];
+            if (options.validValues.indexOf(value) < 0) {
+                throw new Error('illegal value ("' + value + '") in attribute ' + options.attribute);
+            }
+            return value;
+        } catch (err) {
+            throw new ParseEnumError(options.attribute + ' parse error', err);
+        }
+    }
+
     static parseString (data: any, options: IParseStringOptions): string {
         if (!options || !options.attribute) { throw new ParseStringError('missing options/attribute name'); }
         if (!data || !data[options.attribute]) { throw new ParseStringError('missing data/attribute name'); }
@@ -81,6 +96,15 @@ export abstract class DataRecord<T> {
         }
     }
 
+    // static enumToStringValues<T>(myEnum: T): keyof T {
+    //     return Object.keys(myEnum).filter(k => typeof (myEnum as any)[k] === 'number') as any;
+    // }
+    static enumToStringValues<T>(myEnum: T): string [] {
+        const rv: string [] = [];
+        Object.keys(myEnum).forEach( item => rv.push((<any>myEnum)[item]));
+        return rv;
+    }
+
 
     constructor (data: T) {
     }
@@ -92,6 +116,12 @@ export abstract class DataRecord<T> {
 export interface IParseDateOptions {
     attribute: string;
     validate?: boolean;
+}
+
+export interface IParseEnumOptions<T> {
+    attribute: string;
+    validate?: boolean;
+    validValues: string [];
 }
 
 export interface IParseNumberOptions {
@@ -114,6 +144,10 @@ export interface IParseStringOptions {
 
 
 export class ParseDateError extends Error {
+    constructor (msg: string, public cause?: Error) { super(msg); }
+}
+
+export class ParseEnumError extends Error {
     constructor (msg: string, public cause?: Error) { super(msg); }
 }
 

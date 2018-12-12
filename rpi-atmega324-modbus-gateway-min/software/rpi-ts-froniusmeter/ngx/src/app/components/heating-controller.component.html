@@ -1,4 +1,3 @@
-  
 <div class="container">
     <form (ngSubmit)="onSubmit()" #controlForm="ngForm">
         <fieldset disabled>
@@ -25,8 +24,12 @@
         <div *ngFor="let inp of inputs" class="form-group row" [hidden]='inp.hidden'>
                 <label class="col-sm-4 col-form-label" for="{{inp.id}}">{{inp.key}}</label>
                 <div class="col-sm-8">
-                    <input class="form-control" type="{{inp.type}}" min="{{inp.min}}" max="{{inp.max}}" id="{{inp.id}}" required 
+                    <input class="form-control" type="{{inp.type}}" pattern="{{inp.pattern}}" min="{{inp.min}}" max="{{inp.max}}" id="{{inp.id}}" required 
+                        app-validator [element]="inp.validator" [(ngModel)]="inp.validator.value" name="{{inp.name}}" inputmode="{{inp.mode">
+                    <!-- <input *ngIf="inp.type !== 'password'" class="form-control" type="{{inp.type}}" min="{{inp.min}}" max="{{inp.max}}" id="{{inp.id}}" required 
                                app-validator [element]="inp.validator" [(ngModel)]="inp.validator.value" name="{{inp.name}}">
+                    <input *ngIf="inp.type === 'password'" class="form-control" type="{{inp.type}}" min="{{inp.min}}" max="{{inp.max}}" id="{{inp.id}}" required 
+                               app-validator [element]="inp.validator" [(ngModel)]="inp.validator.value" name="{{inp.name}}"> -->
                 </div>
         </div>
         <div class="form-group row">

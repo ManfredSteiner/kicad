@@ -46,19 +46,19 @@ export class Nibe1155Component implements OnInit, OnDestroy {
 
 
     public constructor (private _dataService: DataService, private _configService: ConfigService) {
-        console.log('constructor');
+        // console.log('constructor');
         const x = this._configService.pop('nibe1155:__accordionData');
         if (x) {
             this._accordionData = x;
         } else {
             this._accordionData = {
-                overview:   { infos: [], isOpen: true, header: 'Überblick' },
                 panel:      {
-                                infos: [], isOpen: false, header: 'Steuerung',
-                                showComponent: [ { name: 'HeatingControllerComponent', config: null, data: null } ]
-                            },
+                    infos: [], isOpen: true, header: 'Steuerung',
+                    showComponent: [ { name: 'HeatingControllerComponent', config: null, data: null } ]
+                },
                 controller: { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Controller'},
                 logsetIds:  { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'LOG.SET Register'},
+                overview:   { infos: [], isOpen: false, header: 'Überblick' },
                 others:     { infos: [], filter: {isDisabled: false, value: '', filter: null }, isOpen: false, header: 'Weitere Register'}
             };
         }
@@ -68,7 +68,7 @@ export class Nibe1155Component implements OnInit, OnDestroy {
     }
 
     public ngOnInit () {
-        console.log('onInit');
+        // console.log('onInit');
         this.accordions = [];
         for (const a in this._accordionData) {
             if (!this._accordionData.hasOwnProperty(a)) { continue; }

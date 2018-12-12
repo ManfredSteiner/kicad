@@ -10,6 +10,8 @@ import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar.component';
 import { TestComponent } from './test.component';
 import { GridComponent } from './components/grid.component';
+import { BoilerComponent } from './components/boiler.component';
+import { BoilerControllerComponent } from './components/boiler-controller.component';
 import { OverviewComponent } from './components/overview.component';
 import { OverviewChartComponent } from './components/overview-chart.component';
 import { FroniusmeterComponent } from './components/froniusmeter.component';
@@ -28,6 +30,7 @@ const appRoutes: Routes = [
     { path: 'app/overview', component: OverviewComponent },
     { path: 'app/froniusmeter', component: FroniusmeterComponent },
     { path: 'app/froniussymo', component: FroniusSymoComponent },
+    { path: 'app/boiler', component: BoilerComponent },
     { path: 'app/nibe1155', component: Nibe1155Component }
 ];
 
@@ -38,6 +41,7 @@ const appRoutes: Routes = [
         TestComponent,
         GridComponent,
         OverviewComponent, OverviewChartComponent,
+        BoilerComponent, BoilerControllerComponent,
         FroniusmeterComponent,
         FroniusSymoComponent,
         Nibe1155Component,

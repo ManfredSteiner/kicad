@@ -104,7 +104,7 @@ export class MonitorRecord {
             try {
                 d.hwcMonitorRecord = new hwc.MonitorRecord(data.hwcMonitorRecord);
             } catch (err) {
-                CommonLogger.warn('parsing HotWaterController MonitorRecord fails', err);
+                CommonLogger.warn(this, 'parsing HotWaterController MonitorRecord fails', err);
             }
         }
 
@@ -289,11 +289,13 @@ export class MonitorRecord {
     }
 
     public get boilerPower (): number {
-        if (this._data.hwcMonitorRecord) {
-            return this._data.hwcMonitorRecord.powerWatts;
-        } else {
-            return Number.NaN;
+        if (this._data.hwcMonitorRecord && this._data.hwcMonitorRecord.activePower) {
+            const dt = Date.now() - this._data.hwcMonitorRecord.activePower.createdAt.getTime();
+            if (dt < 10000) {
+                return this._data.hwcMonitorRecord.activePower.value;
+            }
         }
+        return Number.NaN;
     }
 
     public get boilerEnergyDaily (): number {
