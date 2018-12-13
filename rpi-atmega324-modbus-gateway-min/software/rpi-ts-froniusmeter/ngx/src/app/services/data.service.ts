@@ -5,6 +5,8 @@ import { Observable, Subscriber, TeardownLogic, of } from 'rxjs';
 
 import { IFroniusMeterValues } from '../data/common/fronius-meter/fronius-meter-values';
 import { IMonitorRecordData, MonitorRecord, IHeatpumpMode } from '../data/common/monitor-record';
+import { IBoilerMode } from '../data/common/hwc/boiler-mode';
+import { IBoilerController } from '../data/common/hwc/boiler-controller';
 import * as froniusSymo from '../data/common/fronius-symo/fronius-symo-values';
 import * as nibe1155 from '../data/common/nibe1155/nibe1155-values';
 
@@ -165,6 +167,13 @@ export class DataService {
         return this.http.post<IHeatpumpMode>(uri, mode, {});
     }
 
+    public setBoilerMode (mode: IBoilerMode): Observable<IBoilerController> {
+        console.log(mode);
+        const uri = this._serverUri + '/control/boilermode';
+        return this.http.post<IBoilerController>(uri, mode, {});
+    }
+
+
     private froniusMeterSubscriber (subscriber: Subscriber<IFroniusMeterValues>): TeardownLogic {
         const thiz = this;
 
@@ -181,6 +190,7 @@ export class DataService {
             }
         } };
     }
+
 
     private refreshFroniusMeterValues () {
         // console.log('refresh ... ' + this._froniusMeterObservers.length);
@@ -263,7 +273,7 @@ export class DataService {
 export interface IHeatpumpData {
     lastRefreshAt: Date;
     controller: nibe1155.INibe1155Controller;
-    values: { [ id: number ]: nibe1155.Nibe1155Value }
+    values: { [ id: number ]: nibe1155.Nibe1155Value };
     logsetIds: number [];
     nonLogsetIds: number [];
 }

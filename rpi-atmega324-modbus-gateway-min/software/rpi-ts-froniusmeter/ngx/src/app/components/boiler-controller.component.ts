@@ -2,7 +2,9 @@ import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { DataService } from '../services/data.service';
 import { Subscription } from 'rxjs';
 import { MonitorRecord } from '../data/common/monitor-record';
+import { MonitorRecord as HwcMonitorRecord } from '../data/common/hwc/monitor-record';
 import { ValidatorElement } from '../directives/validator.directive';
+import { ControllerMode } from '../data/common/hwc/boiler-mode';
 
 @Component({
     selector: 'app-boiler-controller',
@@ -30,6 +32,7 @@ export class BoilerControllerComponent implements OnInit, OnDestroy {
     private _monitorValuesSubsciption: Subscription;
     private _inputPower: IInput;
     private _inputPin: IInput;
+    private _lastMonitorRecord: HwcMonitorRecord;
 
     constructor (private dataService: DataService) {
         this.currentMode = '?';
@@ -43,9 +46,21 @@ export class BoilerControllerComponent implements OnInit, OnDestroy {
                     }
 
                     case 'power': {
+                        if (this._lastMonitorRecord) {
+                            this._inputPower.validator.value = this._lastMonitorRecord.setpointPower.value;
+                        }
                         this._inputPower.hidden = false;
                         break;
                     }
+
+                    case 'test': {
+                        if (this._lastMonitorRecord) {
+                            this._inputPower.validator.value = this._lastMonitorRecord.setpointPower.value;
+                        }
+                        this._inputPower.hidden = false;
+                        break;
+                    }
+
                 }
             });
 
@@ -88,25 +103,32 @@ export class BoilerControllerComponent implements OnInit, OnDestroy {
     }
 
     public onSubmit() {
-        // this.dataService.setHeatPumpMode({
-        //     createdAt:        new Date(),
-        //     desiredMode:      this.validatorMode.value,
-        //     pin:              this._inputPin.validator.value,
-        //     fSetpoint:        this._inputFrequency.validator.value,
-        //     fMin:             this._inputFrequencyMin.validator.value,
-        //     fMax:             this._inputFrequencyMax.validator.value,
-        //     tempSetpoint:     this._inputTemp.validator.value,
-        //     tempMin:          this._inputTempMin.validator.value,
-        //     tempMax:          this._inputTempMax.validator.value
-        // }).subscribe( (rv) =>  {
-        //     console.log(rv);
-        // }, (error) => {
-        //     console.log(error);
-        // });
+        this.dataService.setBoilerMode({
+            createdAt:        new Date(),
+            desiredMode:      <ControllerMode>this.validatorMode.value,
+            pin:              this._inputPin.validator.value,
+            setpointPower:    this._inputPower.validator.value
+        }).subscribe( (rv) =>  {
+            console.log(rv);
+        }, (error) => {
+            console.log(error);
+        });
     }
 
     private handleMonitorValues (v: MonitorRecord) {
-        this.currentMode = '??';
+        const m = v.hwcMonitorRecord;
+        if (!m || (Date.now() - m.createdAt.getTime() > 10000)) {
+            this.currentMode = '?';
+            if (m) {
+                this.currentMode += ' (' + m.createdAt.toLocaleDateString() + ')';
+            }
+        } else {
+            this.currentMode = m.mode;
+            if (!this._lastMonitorRecord) {
+                this._inputPower.validator.value = m.setpointPower.value;
+            }
+            this._lastMonitorRecord = m;
+        }
         // console.log(v.hwcMonitorRecord);
     }
 

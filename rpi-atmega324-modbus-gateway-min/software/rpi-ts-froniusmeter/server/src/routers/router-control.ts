@@ -10,6 +10,8 @@ import * as express from 'express';
 import { handleError, RouterError, BadRequestError, AuthenticationError } from './router-error';
 import { IHeatpumpMode } from '../data/common/monitor-record';
 import { Nibe1155 } from '../devices/nibe1155';
+import { HotWaterController } from '../devices/hot-water-controller';
+import { BoilerMode, IBoilerMode } from '../data/common/hwc/boiler-mode';
 
 
 export class RouterControl {
@@ -31,6 +33,7 @@ export class RouterControl {
         this._router = express.Router();
         this._router.get('/heatpumpmode', (req, res, next) => this.getHeatpumpmode(req, res, next));
         this._router.post('/heatpumpmode', (req, res, next) => this.postHeatpumpmode(req, res, next));
+        this._router.post('/boilermode', (req, res, next) => this.postBoilerMode(req, res, next));
 
     }
 
@@ -50,6 +53,23 @@ export class RouterControl {
             if (x.pin === undefined) { throw new AuthenticationError('missing pin'); }
             const rv = await Nibe1155.Instance.setHeatpumpMode(x);
             res.send(rv);
+        } catch (err) {
+            handleError(err, req, res, next, debug);
+        }
+    }
+
+    private async postBoilerMode (req: express.Request, res: express.Response, next: express.NextFunction) {
+        try {
+            let bm: BoilerMode;
+            try {
+                const data: IBoilerMode = req.body;
+                bm = new BoilerMode(data);
+            } catch (err) {
+                throw new BadRequestError('invalid request', err);
+            }
+            const rv = await HotWaterController.Instance.setBoilerMode(bm);
+            debug.info('POST return -> %o', rv);
+            res.send(rv.toObject());
         } catch (err) {
             handleError(err, req, res, next, debug);
         }

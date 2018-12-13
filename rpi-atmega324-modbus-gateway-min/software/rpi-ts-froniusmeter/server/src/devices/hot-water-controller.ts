@@ -5,12 +5,15 @@ const debug: debugsx.IFullLogger = debugsx.createFullLogger('devices:HotWaterCon
 import * as http from 'http';
 
 import { IMonitorRecord, MonitorRecord } from '../data/common/hwc/monitor-record';
+import { BoilerMode } from '../data/common/hwc/boiler-mode';
+import { IBoilerController, BoilerController } from '../data/common/hwc/boiler-controller';
 
 
 interface IHotWaterControllerConfig {
     host: string;
     port: number;
     path: string;
+    pathController: string;
     start?: boolean;
     timeoutMillis?: number;
     pollingPeriodMillis?: number;
@@ -71,40 +74,6 @@ export class HotWaterController {
     }
 
 
-    // public get values ():  { [id: number]: Nibe1155Value } {
-    //     return this._values;
-    // }
-
-    // public get brinePumpPower (): number {
-    //     const v = this._values[43439];
-    //     if (!v || v.label !== 'brinePumpSpeed' || (Date.now() - v.valueAt.getTime()) > 5000) { return Number.NaN; }
-    //     return 30 / 100 * v.value;
-    // }
-
-    // public get supplyPumpPower (): number {
-    //     const v = this._values[43437];
-    //     if (!v || v.label !== 'supplyPumpSpeed' || (Date.now() - v.valueAt.getTime()) > 5000) { return Number.NaN; }
-    //     return 30 / 100 * v.value;
-    // }
-
-    // public get compressorPower (): number {
-    //     const v = this._values[43141];
-    //     if (!v || v.label !== 'compressorInPower' || (Date.now() - v.valueAt.getTime()) > 5000) { return Number.NaN; }
-    //     return v.value;
-    // }
-
-    // public get compressorFrequency (): number {
-    //     const v = this._values[43136];
-    //     if (!v || v.label !== 'compressorFrequency' || (Date.now() - v.valueAt.getTime()) > 5000) { return Number.NaN; }
-    //     return v.value;
-    // }
-
-
-    // public get electricHeaterPower (): number {
-    //     const v = this._values[43084];
-    //     if (!v || v.label !== 'electricHeaterPower' || (Date.now() - v.valueAt.getTime()) > 5000) { return Number.NaN; }
-    //     return v.value;
-    // }
 
     /* tslint:disable:unified-signatures */
     public async getData (): Promise<MonitorRecord> {
@@ -158,51 +127,47 @@ export class HotWaterController {
         return rv;
     }
 
-    // public async setHeatpumpMode (mode: IHeatpumpMode): Promise<IHeatpumpMode> {
-    //     if (!mode || !mode.createdAt || !mode.desiredMode
-    //          || !mode.pin) {
-    //         return Promise.reject(new Error('invalid mode'));
-    //     }
-    //     const rv = new Promise<IHeatpumpMode>( (resolve, reject) => {
-    //         const body = JSON.stringify(mode);
-    //         const options = Object.assign({}, this._options);
-    //         options.method = 'POST';
-    //         options.path = this._config.pathMode;
-    //         options.headers = {
-    //             'Content-Type': 'application/json',
-    //             'Content-Length': Buffer.byteLength(body)
-    //         };
-    //         const req = http.request(options, (res) => {
-    //             if (res.statusCode !== 200) {
-    //                 reject(new Error('response error status ' + res.statusCode));
-    //                 return;
-    //             }
-    //             res.setEncoding('utf8');
-    //             let s = '';
-    //             res.on('data', chunk => {
-    //                 s += chunk;
-    //             });
-    //             res.on('end', () => {
-    //                 try {
-    //                     const r: IHeatpumpMode = JSON.parse(s);
-    //                     if (!r || !r.createdAt || !r.desiredMode || !r.currentMode) {
-    //                         throw new Error('invalid response for mode');
-    //                     }
-    //                     resolve(r);
-    //                 } catch (err) {
-    //                     debug.warn(err);
-    //                     reject(err);
-    //                 }
-    //             });
-    //         });
-    //         req.on('error', (err) => {
-    //             debug.warn(err);
-    //         });
-    //         req.write(body);
-    //         req.end();
-    //     });
-    //     return rv;
-    // }
+    public async setBoilerMode (mode: BoilerMode): Promise<BoilerController> {
+        const rv = new Promise<BoilerController>( (resolve, reject) => {
+            const body = JSON.stringify(mode.toObject());
+            const options = Object.assign({}, this._options);
+            options.method = 'POST';
+            options.path = this._config.pathController;
+            options.headers = {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body)
+            };
+            debug.info('send %o', options);
+            const req = http.request(options, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error('response error status ' + res.statusCode));
+                    return;
+                }
+                res.setEncoding('utf8');
+                let s = '';
+                res.on('data', chunk => {
+                    s += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        debug.info('POST hwc -> %s', s);
+                        const x: IBoilerController = JSON.parse(s);
+                        const r = new BoilerController(x);
+                        resolve(r);
+                    } catch (err) {
+                        debug.warn(err);
+                        reject(err);
+                    }
+                });
+            });
+            req.on('error', (err) => {
+                debug.warn(err);
+            });
+            req.write(body);
+            req.end();
+        });
+        return rv;
+    }
 
     private async init () {
         if (this._config && this._config.start) {
